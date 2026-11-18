@@ -63,7 +63,8 @@ function shadowMatrices() {
 function shadowPasses(e) {
   for (let c = 0; c < NCASC; c++) {
     const r = e.beginRenderPass(passSh[c]);
-    if (sunUp && (c < 2 || (frameN & 1) === 0 || frameN < 4)) {
+    // every cascade every frame: the pass clears its map, so a skipped cascade would strobe at half the frame rate
+    if (sunUp) {
       r.setBindGroup(0, bg0Shd);
       r.setPipeline(pShT[c]); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, nDrawSh);
       r.setPipeline(pShP[c]); r.setBindGroup(2, LS_TREE[2]); r.setVertexBuffer(0, vbProps); r.setIndexBuffer(ibProps, 'uint32');
