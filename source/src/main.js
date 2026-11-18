@@ -209,7 +209,7 @@ function render() {
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();
   lastDraw = lodUpdate(e, BUILDS);
-  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e); seaPass(e); shadowPasses(e);
+  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e); seaPass(e); faunaPass(e); shadowPasses(e);
   let r = e.beginRenderPass(passScene);
   r.setBindGroup(0, bg0);
   r.setPipeline(pTerrain); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, lastDraw);
@@ -218,7 +218,7 @@ function render() {
   r.setPipeline(pFlower); r.setBindGroup(3, bgFlowerR); r.drawIndirect(bGArgs, 16);
   r.setPipeline(pProps); r.setBindGroup(2, LS_TREE[2]); r.setVertexBuffer(0, vbProps); r.setIndexBuffer(ibProps, 'uint32');
   for (let b = 0; b < NBK; b++) { r.setBindGroup(3, bgPropsR[b]); r.drawIndexedIndirect(bPArgs, b * 20); }
-  seaDraw(r);
+  seaDraw(r); faunaDraw(r);
   r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, nWater);
   r.setBindGroup(1, bgTerr); seaSnow(r);
   r.end();

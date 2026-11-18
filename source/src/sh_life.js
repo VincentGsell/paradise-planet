@@ -80,13 +80,14 @@ fn biome(h: f32, n: vec3f, up: vec3f, rel: vec3f) -> vec4f {
 `;
 
 // ---- grass and flowers: placement (capacities per level)
-const MAXB = [900000, 600000, 260000][LV], MAXF = [60000, 40000, 16000][LV];
+const MAXB = [900000, 600000, 260000][LV], MAXF = [60000, 40000, 16000][LV], FFMAX = 3000;
 const W_GRASS_CS = /*wgsl*/`
 struct Blade { a: vec4f, b: vec4u };
 struct Args { n: u32, count: atomic<u32>, first: u32, base: u32 };
 @group(3) @binding(0) var<storage, read_write> BL: array<Blade>;
-@group(3) @binding(1) var<storage, read_write> ARGS: array<Args, 2>;
+@group(3) @binding(1) var<storage, read_write> ARGS: array<Args, 3>;
 @group(3) @binding(2) var<storage, read_write> FL: array<Blade>;
+@group(3) @binding(3) var<storage, read_write> FF: array<Blade>;
 const MAXB = ${MAXB}u; const MAXF = ${MAXF}u;
 @compute @workgroup_size(64) fn main(@builtin(workgroup_id) w: vec3u, @builtin(local_invocation_index) li: u32) {
   let g = ground(w.x + w.y * 65535u, li, u32(LF.k2.w));
@@ -118,10 +119,16 @@ const MAXB = ${MAXB}u; const MAXF = ${MAXF}u;
       FL[i].b = vec4u(octEnc(g.up), g.hash, u32(detail(0u, g.rel + 77.0, 0.0) * 5.0 + rnd(g.hash, 9u) * 1.2), 0u);
     }
   }
+  // fireflies (shown at dusk only) hover over the meadows
+  if (d < 42.0 && rnd(g.hash, 11u) < 0.0035 * b.x) {
+    let i = atomicAdd(&ARGS[2].count, 1u);
+    if (i < ${FFMAX}u) { FF[i] = Blade(vec4f(g.rel, 1.0), vec4u(octEnc(g.up), g.hash, 0u, 0u)); }
+  }
 }
 @compute @workgroup_size(1) fn fin() {
   atomicStore(&ARGS[0].count, min(atomicLoad(&ARGS[0].count), MAXB));
   atomicStore(&ARGS[1].count, min(atomicLoad(&ARGS[1].count), MAXF));
+  atomicStore(&ARGS[2].count, min(atomicLoad(&ARGS[2].count), ${FFMAX}u));
 }
 `;
 
