@@ -172,7 +172,7 @@ fn cloudAt(p: vec3f, foot: f32, shapeOnly: bool, mipBias: f32) -> CS {
   return s;
 }
 fn hg(g: f32, c: f32) -> f32 { let g2 = g * g; return (1.0 - g2) / (4.0 * PI * pow(max(1.0 + g2 - 2.0 * g * c, 1e-5), 1.5)); }
-fn cPhase(c: f32, k: f32) -> f32 { return max(mix(hg(0.8 * k, c), hg(-0.25 * k, c), 0.35), 0.0); }
+fn cPhase(c: f32, k: f32) -> f32 { return max(mix(hg(0.82 * k, c), hg(-0.2 * k, c), 0.4), 0.0) + 0.6 * hg(0.97, c) * k; }
 // optical depth toward the sun: 6 doubling steps (shape only, coarser mips), then one far sample
 fn lightOD(p: vec3f, foot: f32, jit: f32) -> f32 {
   let l = F.sun.xyz;
@@ -236,7 +236,7 @@ fn ign(p: vec2f, f: f32) -> f32 { let q = p + 5.588238 * f; return fract(52.9829
       for (var j = 0; j < 3; j++) { ms += b * ph[j] * exp(-a * od); a *= 0.45; b *= 0.55; }
       let powder = mix(1.0, 1.0 - exp(-s.d * sig * 60.0), 0.55 * sat(0.5 - 0.5 * ct));
       let sunL = sunAt(up, hm) * ms * powder;
-      let amb = skyIrr(up, hm) / PI * (0.25 + 0.75 * s.hf) + sunAt(up, 0.0) * max(dot(up, F.sun.xyz), 0.0) * 0.06 * (1.0 - s.hf);
+      let amb = skyIrr(up, hm) / PI * (0.2 + 0.6 * s.hf) + sunAt(up, 0.0) * max(dot(up, F.sun.xyz), 0.0) * 0.06 * (1.0 - s.hf);
       let ext = max(s.d * sig, 1e-6);
       let tr = exp(-ext * ds);
       L += T * (sunL + amb) * (1.0 - tr);

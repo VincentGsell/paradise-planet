@@ -62,13 +62,24 @@ function makeNode(f, l, x, y, slot, par) {
   const size = R * PI / 2 / n2, cell = size / 32;
   // 5 x 5 heights of the octaves longer than half the patch (sampled finer than their wavelength), plus all that
   // the finer octaves can add: a conservative range (a patch's sea surface is drawn from it)
-  const mw = size / 4; let lo = 1e9, hi = -1e9;
-  for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) {
-    cubeDir(TD, 0, f, s0 + k * i * 0.25, t0 + k * j * 0.25);
-    const h = relief(TD[0], TD[1], TD[2], mw); if (h < lo) lo = h; if (h > hi) hi = h;
+  let lo = 1e9, hi = -1e9;
+  if (l >= 7 && par >= 0) {
+    // small patches: one sample at the centre, a slope bound around it, within their parent's range (cheap: no
+    // hitch when many are built at once)
+    const mw = size / 4;
+    cubeDir(TD, 0, f, s0 + k * 0.5, t0 + k * 0.5);
+    const hc = relief(TD[0], TD[1], TD[2], mw), e = size * 1.5 + restAmp(mw) + 1;
+    lo = max(nHmin[par], shape(hc - e)); hi = min(nHmax[par], shape(hc + e));
+    if (lo > hi) { lo = nHmin[par]; hi = nHmax[par]; }
+  } else {
+    const mw = size / 4;
+    for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) {
+      cubeDir(TD, 0, f, s0 + k * i * 0.25, t0 + k * j * 0.25);
+      const h = relief(TD[0], TD[1], TD[2], mw); if (h < lo) lo = h; if (h > hi) hi = h;
+    }
+    const rest = restAmp(mw) + (hi - lo) * 0.15 + 1;
+    lo = shape(lo - rest); hi = shape(hi + rest);
   }
-  const rest = restAmp(mw) + (hi - lo) * 0.15 + 1;
-  lo = shape(lo - rest); hi = shape(hi + rest);
   // under the sea, the patch also carries the sea surface (and its waves): the view test uses bounds that hold it
   // (else a patch whose seabed is out of view while its water is in view leaves a hole in the sea); the LOD uses
   // the ground's

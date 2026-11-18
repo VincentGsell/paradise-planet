@@ -110,6 +110,8 @@ function lookAt(px, py, pz, tx, ty, tz) {
   CP[0] = px; CP[1] = py; CP[2] = pz; CV.fill(0);
   CB[0] = tx - px; CB[1] = ty - py; CB[2] = tz - pz; v3norm(CB, 0);
   TMP[0] = px; TMP[1] = py; TMP[2] = pz; v3norm(TMP, 0);
+  // looking straight up or down: the vertical gives no right vector, take another reference
+  if (abs(v3dot(CB, 0, TMP, 0)) > 0.999) { TMP[0] = 0.31; TMP[1] = 0.83; TMP[2] = 0.47; }
   v3cross(CB, 6, CB, 0, TMP, 0); v3norm(CB, 6);
   v3cross(CB, 3, CB, 6, CB, 0);
 }
@@ -188,7 +190,7 @@ const POSES = [];
     for (let k = 0; k < 8; k++) { const b = k / 8 * TAU, q2 = at(cos(a) * rr + cos(b) * 25, sin(a) * rr + sin(b) * 25, 6); const w = woods(q2); if (w > best) { best = w; bq = q2; } }
     if (best > 0.62) { FOREST = q; FTGT = bq; break; }
   }
-  pose(at(0, 0, 0, R * 2.6), at(0, 0, 0, 0), 9.5);                         // 1 orbit
+  pose(at(-R * 0.9, -R * 0.6, 0, R * 2.4), at(0, 0, 0, -R), 15.2);            // 1 orbit, the planet three-quarter lit
   pose(at(-2600, -3800, 0, CBASE + CTHICK + 900), at(300, 900, 0, 0), 16.9);  // 2 high altitude, above the clouds
   pose(at(-600, -900, 0, CBASE * 0.8), at(800, 900, 0, CBASE * 0.55), 16.8);   // 3 under the cloud layer
   pose(SUNSET[0], SUNSET[1], SUNH, 1);                                      // 4 a beach facing the sunset over the open sea
@@ -214,7 +216,7 @@ const POSES = [];
     }
     return clearing ? seaSpot(lo, hi, up, look, false) : [at(20, 200, -9), at(60, 300, -24)];
   };
-  const REEF = seaSpot(-14, -10, 3, -5), GARDEN = seaSpot(-43, -36, 5, 2, true);
+  const REEF = seaSpot(-14, -10, 3, -5), GARDEN = seaSpot(-43, -36, 9, -6, true);
   pose(REEF[0], REEF[1], 12.5);                                             // 7 the reef, a few metres over the floor
   pose(GARDEN[0], GARDEN[1], 13);                                           // 8 garden at 40 m
 }
@@ -343,7 +345,7 @@ function fly(dt) {
     }
   }
   // re-orthonormalize: right = forward x up, up = right x forward
-  v3norm(CB, 0); v3cross(CB, 6, CB, 0, CB, 3); v3norm(CB, 6); v3cross(CB, 3, CB, 6, CB, 0);
+  v3norm(CB, 0); v3cross(CB, 6, CB, 0, CB, 3); v3norm(CB, 6); v3cross(CB, 3, CB, 6, CB, 0); v3norm(CB, 3);
   // speed follows the height above the ground (or the sea floor); slow under water
   const gh = groundAt(CP[0], CP[1], CP[2]), above = max(alt - max(gh, -1e9), 0.5);
   const wet = alt < 0;

@@ -58,6 +58,13 @@ fn toSrgb(c: vec3f) -> vec3f { return select(1.055 * pow(c, vec3f(1.0 / 2.4)) - 
   var c = textureSampleLevel(cIn, smp, i.uv, 0.0).rgb + textureSampleLevel(rays, smp, i.uv, 0.0).rgb;
   c = mix(c, textureSampleLevel(bloom, smp, i.uv, 0.0).rgb, 0.06);
   c *= E[0] * F.misc.y;
+  // grading: a slightly warm white balance; when the sun is low (above the sea), the golden hour warms the lights
+  // and leaves a touch of lilac in the shadows
+  let mus = dot(normalize(F.cam.xyz), F.sun.xyz);
+  let gold = smoothstep(0.38, 0.06, mus) * smoothstep(-0.1, 0.03, mus) * select(1.0, 0.0, F.cam.w < F.pl.x);
+  let lum0 = dot(c, vec3f(0.2126, 0.7152, 0.0722));
+  c *= vec3f(1.04, 1.0, 0.95);
+  c = mix(c, c * mix(vec3f(0.92, 0.9, 1.12), vec3f(1.32, 1.02, 0.7), smoothstep(0.05, 0.6, lum0)), gold * 0.85);
   // a light vignette
   let v = i.uv - 0.5; c *= 1.0 - 0.22 * dot(v, v) * 2.0;
   var s = toSrgb(aces(c * 1.25));

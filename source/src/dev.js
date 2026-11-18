@@ -138,3 +138,16 @@ PP.readArgs = async (which) => {
   const e = device.createCommandEncoder(); e.copyBufferToBuffer(b, 0, rb, 0, b.size); Q.submit([e.finish()]);
   await rb.mapAsync(GPUMapMode.READ); const a = Array.from(new Uint32Array(rb.getMappedRange())); rb.unmap(); return a;
 };
+PP.dump = () => {
+  const o = []; o.push('CP ' + [...CP].map((v) => v.toFixed(0)) + ' |CP| ' + v3len(CP, 0).toFixed(0) + ' R ' + R);
+  o.push('fwd ' + [...CB].slice(0, 3).map((v) => v.toFixed(3)) + ' toCentre ' + [...CP].map((v) => (-v / v3len(CP, 0)).toFixed(3)));
+  for (let i = 0; i < Math.min(nDraw, 6); i++) { const q = i * 12; o.push(`rec ${i}: crel ${PTF[q].toFixed(0)},${PTF[q + 1].toFixed(0)},${PTF[q + 2].toFixed(0)} cbody ${PTF[q + 4].toFixed(0)},${PTF[q + 5].toFixed(0)},${PTF[q + 6].toFixed(0)} slot ${PTF[q + 8]} L ${PTF[q + 9]} crel+cam ${(PTF[q] + CP[0]).toFixed(0)}`); }
+  o.push('FU cam ' + [FU[28], FU[29], FU[30], FU[31]].map((v) => v.toFixed(0)) + ' CAM ' + [...CAM].map((v) => v.toFixed(0)));
+  return o.join('\n');
+};
+PP.proj = () => {
+  // the planet's centre through the frame's view-projection (column-major), and a record's centre
+  const m = FU, p = [-CP[0], -CP[1], -CP[2], 1], c = [0, 0, 0, 0];
+  for (let r = 0; r < 4; r++) for (let k = 0; k < 4; k++) c[r] += m[k * 4 + r] * p[k];
+  return { ndc: [c[0] / c[3], c[1] / c[3], c[2] / c[3]], w: c[3], tx: FU[19], ty: FU[23], WH: [W, H], vp0: Array.from(FU.slice(0, 16)).map((v) => +v.toFixed(3)) };
+};

@@ -96,7 +96,7 @@ const MAXB = ${MAXB}u; const MAXF = ${MAXF}u;
   let R0 = LF.k.x;
   if (d > R0 || !inView(g.rel, 1.2)) { return; }
   let b = biome(g.h, g.n, g.up, g.rel);
-  let grass = b.x + b.y * 0.35;
+  let grass = (b.x + b.y * 0.35) * smoothstep(0.35, 0.7, 1.0 - b.z);
   // the Delphi distance LOD: all of it up close, then thinning; far blades get wider to keep the cover
   let near = R0 * 0.22;
   let keep = select(1.0, pow(near / d, 1.6), d > near) * smoothstep(R0, R0 * 0.8, d);
@@ -391,7 +391,10 @@ fn leaves(uv: vec2f, h: f32) -> f32 {
     let pal = array<vec3f, 6>(vec3f(0.95, 0.35, 0.55), vec3f(1.0, 0.55, 0.18), vec3f(0.62, 0.3, 0.85), vec3f(0.95, 0.85, 0.25), vec3f(0.2, 0.75, 0.7), vec3f(0.9, 0.25, 0.2));
     var ca = pal[u32(hv * 5.99)] * (0.55 + 0.45 * fract(hv * 13.7)) * (0.7 + 0.3 * i.m.r / max(i.m.g, 0.01));
     if (kind == 8u) { ca = mix(vec3f(0.55, 0.35, 0.2), pal[u32(hv * 5.99)], 0.45); }
-    ca *= 0.75 + 0.5 * detail(3u, i.rel * 3.0, 0.0);
+    let pol = vnoise((F.cam.xyz + i.rel) * 9.0);
+    let mot = vnoise((F.cam.xyz + i.rel) * 1.3 + 7.0);
+    ca *= (0.6 + 0.55 * pol) * (0.8 + 0.4 * mot);
+    n = normalize(n + (vec3f(vnoise((F.cam.xyz + i.rel) * 7.0), vnoise((F.cam.xyz + i.rel) * 7.0 + 3.1), vnoise((F.cam.xyz + i.rel) * 7.0 + 6.2)) - 0.5) * 0.9);
     return vec4f(waterLit(ca, n, up, i.rel, 0.25, length(i.rel) * F.misc.x, ca * 0.004), 1.0);
   }
   let cs = cloudShadow(i.rel);
