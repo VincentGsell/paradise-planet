@@ -94,9 +94,9 @@ struct Ocean {
   cas: array<vec4f, 3>, // per cascade: camera in the plane modulo the tile (m), 1 / tile, texel (m)
   waves: vec4f,   // xy: unresolved slope variance, z: cell size per metre of distance, w: near clearance (m)
 };
-@group(2) @binding(0) var<uniform> O: Ocean;
-@group(2) @binding(1) var wDisp: texture_2d_array<f32>;
-@group(2) @binding(2) var wSlope: texture_2d_array<f32>;
+@group(0) @binding(12) var<uniform> O: Ocean;
+@group(0) @binding(13) var wDisp: texture_2d_array<f32>;
+@group(0) @binding(14) var wSlope: texture_2d_array<f32>;
 const IOR = 1.333;
 fn wExt() -> vec3f { return O.absorb.rgb + O.scatter.rgb; }
 fn refrCos(mu: f32) -> f32 { let s2 = max(1.0 - mu * mu, 0.0) / (IOR * IOR); return sqrt(max(1.0 - s2, 0.0)); }

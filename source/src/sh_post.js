@@ -94,8 +94,10 @@ var<workgroup> wacc: array<f32, 256>;
     let avg = acc[0] / max(wacc[0], 1e-3);
     // target: mid grey for a daylight scene; below, only half of the darkening is compensated
     let lum = exp2(avg);
-    let tgt = 0.2 / max(lum, 1e-5) * pow(clamp(lum / 0.1, 1e-4, 1.0), 0.45);
-    let t = clamp(tgt, 0.25, 24.0);
+    // under the sea the eye adapts fully: the garden stays bright as long as light reaches it
+    let wet = F.cam.w < F.pl.x;
+    let tgt = select(0.2 / max(lum, 1e-5) * pow(clamp(lum / 0.1, 1e-4, 1.0), 0.45), 0.26 / max(lum, 1e-5), wet);
+    let t = clamp(tgt, 0.25, select(24.0, 60.0, wet));
     if (E[1] == 0.0) { E[0] = t; E[1] = 1.0; }
     else { E[0] = exp2(mix(log2(E[0]), log2(t), 1.0 - exp(-F.sunc.w * 1.6))); }
   }

@@ -6,13 +6,8 @@ await say('Shaping the planet…', 0.1, 400);
 // ---------------------------------------------------------------- pipelines of the scene
 const mTerr = mod(W_SCENE + W_GROUND + W_TERRAIN);
 const mSurf = mod(W_SCENE + W_SURFACE.replace('@group(1) @binding(2)', '@group(1) @binding(2)'));
-const scenePipe = (m, vsE, fsE, layout, o = {}) => device.createRenderPipeline({ layout,
-  vertex: { module: m, entryPoint: vsE, buffers: o.buffers || [], constants: o.constants },
-  fragment: { module: m, entryPoint: fsE, targets: [{ format: HDR, blend: o.blend }] },
-  primitive: { topology: o.strip ? 'triangle-strip' : 'triangle-list', cullMode: o.cull || 'none' },
-  depthStencil: { format: DEPTH, depthWriteEnabled: o.depthWrite || !o.blend, depthCompare: 'greater' }, multisample: { count: AA } });
-const pTerrain = scenePipe(mTerr, 'vs', 'fs', lay(bgl0, bglTerr, bglOcean));
-const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater, bglOcean), { blend: OVER, depthWrite: true });
+const pTerrain = scenePipe(mTerr, 'vs', 'fs', lay(bgl0, bglTerr));
+const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater), { blend: OVER, depthWrite: true });
 const mGrass = mod(W_LIFE + W_GRASS_DRAW);
 const pGrass = scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
 const pFlower = scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
@@ -214,20 +209,21 @@ function render() {
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();
   lastDraw = lodUpdate(e, BUILDS);
-  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e); shadowPasses(e);
+  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e); seaPass(e); shadowPasses(e);
   let r = e.beginRenderPass(passScene);
-  r.setBindGroup(0, bg0); r.setBindGroup(2, bgOcean);
+  r.setBindGroup(0, bg0);
   r.setPipeline(pTerrain); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, lastDraw);
   r.setBindGroup(2, bgLife);
   r.setPipeline(pGrass); r.setBindGroup(3, bgGrassR); r.drawIndirect(bGArgs, 0);
   r.setPipeline(pFlower); r.setBindGroup(3, bgFlowerR); r.drawIndirect(bGArgs, 16);
   r.setPipeline(pProps); r.setBindGroup(2, LS_TREE[2]); r.setVertexBuffer(0, vbProps); r.setIndexBuffer(ibProps, 'uint32');
   for (let b = 0; b < NBK; b++) { r.setBindGroup(3, bgPropsR[b]); r.drawIndexedIndirect(bPArgs, b * 20); }
-  r.setBindGroup(2, bgOcean);
+  seaDraw(r);
   r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, nWater);
+  r.setBindGroup(1, bgTerr); seaSnow(r);
   r.end();
   cloudMarch(e); rayPasses(e);
-  r = e.beginRenderPass(passComp); r.setPipeline(pComp); r.setBindGroup(0, bg0); r.setBindGroup(1, bgComp[cPing]); r.setBindGroup(2, bgOcean); r.draw(3); r.end();
+  r = e.beginRenderPass(passComp); r.setPipeline(pComp); r.setBindGroup(0, bg0); r.setBindGroup(1, bgComp[cPing]); r.draw(3); r.end();
   for (let i = 0; i < bloomPass.length; i++) {
     r = e.beginRenderPass(bloomPass[i]); r.setPipeline(i === 0 ? pDown0 : i < NB ? pDown : pUp); r.setBindGroup(0, bloomBG[i]); r.draw(3); r.end();
     if (i === NB - 1) { const x = e.beginComputePass(); x.setPipeline(pExpo); x.setBindGroup(0, bg0); x.setBindGroup(1, bgExpo); x.dispatchWorkgroups(1); x.end(); }

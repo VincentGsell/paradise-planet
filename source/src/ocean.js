@@ -3,7 +3,7 @@
 // ============================================================================
 // A gentle trade wind: 6.5 m/s over 60 km of fetch, a little swell. Clear tropical water.
 const WIND = 6.5, FETCH = 60e3, SWELL = 0.25, GRAV = 9.81, REPEAT = 512, CHOP = 1.0;
-const ABSORB = [0.30, 0.040, 0.024], SCATTER = [0.010, 0.016, 0.022];
+const ABSORB = [0.20, 0.024, 0.020], SCATTER = [0.010, 0.030, 0.034]; // an idealised, very clear tropical sea (cyan in depth)
 {
   // JONSWAP + Mitsuyasu/Hasselmann spreading (OpenG), Box-Muller amplitudes from the seeded stream
   const lnGamma = (x) => {
@@ -41,11 +41,8 @@ const ABSORB = [0.30, 0.040, 0.024], SCATTER = [0.010, 0.016, 0.022];
   var HSIG = 4 * sqrt(hv), tH0 = device.createTexture({ size: [N, N, 3], format: 'rgba32float', usage: TU.TEXTURE_BINDING | TU.COPY_DST });
   Q.writeTexture({ texture: tH0 }, H0, { bytesPerRow: N * 16, rowsPerImage: N }, [N, N, 3]);
 }
-const WMIPS = 9;
 const tSpec = device.createTexture({ size: [WAVE_N, WAVE_N, 6], format: 'rgba32float', usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 const tFft = device.createTexture({ size: [WAVE_N, WAVE_N, 6], format: 'rgba32float', usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
-const tDisp = device.createTexture({ size: [WAVE_N, WAVE_N, 3], format: HDR, mipLevelCount: WMIPS, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
-const tSlope = device.createTexture({ size: [WAVE_N, WAVE_N, 3], format: HDR, mipLevelCount: WMIPS, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 const WU = new Float32Array(8), uWave = ubuf(32);
 WU.set([CASC[0], CASC[1], CASC[2], 0, 0, CHOP, TAU / REPEAT, GRAV]);
 const mWaves = mod(W_WAVES);
@@ -72,11 +69,6 @@ function waves(e) {
 }
 
 // ---------------------------------------------------------------- group 2 of the scene: the water
-const OU = new Float32Array(36), uOcean = ubuf(144);
-const bglOcean = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: VF, buffer: {} },
-  { binding: 1, visibility: VF, texture: { viewDimension: '2d-array' } }, { binding: 2, visibility: VF, texture: { viewDimension: '2d-array' } }] });
-const bgOcean = device.createBindGroup({ layout: bglOcean, entries: [{ binding: 0, resource: { buffer: uOcean } },
-  { binding: 1, resource: tDisp.createView({ dimension: '2d-array' }) }, { binding: 2, resource: tSlope.createView({ dimension: '2d-array' }) }] });
 const bglWater = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: VF, buffer: { type: 'read-only-storage' } }, { binding: 1, visibility: VF, buffer: { type: 'read-only-storage' } },
   { binding: 2, visibility: VF, buffer: { type: 'read-only-storage' } }] });
 const bWaterList = sbuf(SLOTS * 4);
@@ -86,7 +78,7 @@ const mComp = mod(W_FRAME + W_NOISE + W_ATMO + W_LIGHT + W_WATER + W_UNDERWATER 
 const bglComp = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: { sampleType: 'unfilterable-float' } },
   { binding: 1, visibility: SS.FRAGMENT, texture: { sampleType: 'depth', multisampled: AA > 1 } }, { binding: 2, visibility: SS.FRAGMENT, buffer: {} },
   { binding: 3, visibility: SS.FRAGMENT, texture: {} }, { binding: 4, visibility: SS.FRAGMENT, texture: {} }] });
-const pComp = device.createRenderPipeline({ layout: lay(bgl0, bglComp, bglOcean), vertex: { module: mComp, entryPoint: 'vs' }, fragment: { module: mComp, entryPoint: 'fs', targets: [{ format: HDR }] } });
+const pComp = device.createRenderPipeline({ layout: lay(bgl0, bglComp), vertex: { module: mComp, entryPoint: 'vs' }, fragment: { module: mComp, entryPoint: 'fs', targets: [{ format: HDR }] } });
 // the camera in the wave plane, accumulated from its motion (f64): the waves stay put as it flies
 const WPOS = new Float64Array(2), WLAST = new Float64Array(3), WAX = new Float64Array(6);
 let wFirst = true;

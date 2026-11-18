@@ -54,21 +54,35 @@ const tBlack = tex(1, 1, HDR, TU.TEXTURE_BINDING | TU.RENDER_ATTACHMENT);
 let tCloudSh = tex(1, 1, HDR, TU.TEXTURE_BINDING);
 const tShadow = device.createTexture({ size: [SHN, SHN, NCASC], format: DEPTH, usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
 const tShDummy = device.createTexture({ size: [1, 1, 1], format: DEPTH, usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
+// the sea's wave maps and uniform (filled by ocean.js), shared by every pass through group 0
+const WMIPS = 9;
+const tDisp = device.createTexture({ size: [WAVE_N, WAVE_N, 3], format: HDR, mipLevelCount: WMIPS, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
+const tSlope = device.createTexture({ size: [WAVE_N, WAVE_N, 3], format: HDR, mipLevelCount: WMIPS, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
+const OU = new Float32Array(36), uOcean = ubuf(144);
 const sCmp = device.createSampler({ compare: 'less-equal', magFilter: 'linear', minFilter: 'linear' });
 const bgl0 = device.createBindGroupLayout({ entries: [
   { binding: 0, visibility: VFC, buffer: {} }, { binding: 1, visibility: VFC, buffer: { type: 'read-only-storage' } },
   { binding: 2, visibility: VFC, buffer: {} }, { binding: 3, visibility: VFC, sampler: {} },
   { binding: 4, visibility: VFC, texture: {} }, { binding: 5, visibility: VFC, texture: {} }, { binding: 6, visibility: VFC, texture: {} }, { binding: 7, visibility: VFC, texture: {} },
   { binding: 8, visibility: VFC, sampler: {} }, { binding: 9, visibility: VFC, texture: {} },
-  { binding: 10, visibility: VFC, texture: { sampleType: 'depth', viewDimension: '2d-array' } }, { binding: 11, visibility: VFC, sampler: { type: 'comparison' } }] });
+  { binding: 10, visibility: VFC, texture: { sampleType: 'depth', viewDimension: '2d-array' } }, { binding: 11, visibility: VFC, sampler: { type: 'comparison' } },
+  { binding: 12, visibility: VFC, buffer: {} }, { binding: 13, visibility: VFC, texture: { viewDimension: '2d-array' } }, { binding: 14, visibility: VFC, texture: { viewDimension: '2d-array' } }] });
 // the LUT passes write one of the textures of group 0: they get a group where that one is replaced by a stand-in
 const mkBG0 = (t, m, e, s, c, sh = tShadow) => device.createBindGroup({ layout: bgl0, entries: [
   { binding: 0, resource: { buffer: uFrame } }, { binding: 1, resource: { buffer: bPerm } }, { binding: 2, resource: { buffer: uAtmo } },
   { binding: 3, resource: sLin }, { binding: 4, resource: t.createView() }, { binding: 5, resource: m.createView() }, { binding: 6, resource: e.createView() },
   { binding: 7, resource: s.createView() }, { binding: 8, resource: sRep }, { binding: 9, resource: c.createView() },
-  { binding: 10, resource: sh.createView({ dimension: '2d-array' }) }, { binding: 11, resource: sCmp }] });
+  { binding: 10, resource: sh.createView({ dimension: '2d-array' }) }, { binding: 11, resource: sCmp },
+  { binding: 12, resource: { buffer: uOcean } }, { binding: 13, resource: tDisp.createView({ dimension: '2d-array' }) }, { binding: 14, resource: tSlope.createView({ dimension: '2d-array' }) }] });
 let bg0 = mkBG0(tTrans, tMulti, tIrr, tSkyV, tCloudSh);
 const bg0Sky = mkBG0(tTrans, tMulti, tIrr, tBlack, tBlack);
 const lay = (...g) => device.createPipelineLayout({ bindGroupLayouts: g });
 const bglOut = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, storageTexture: { access: 'write-only', format: HDR } }] });
 const outBG = (t) => device.createBindGroup({ layout: bglOut, entries: [{ binding: 0, resource: t.createView() }] });
+
+// a pipeline of the scene pass (HDR, reversed-Z depth, MSAA)
+const scenePipe = (m, vsE, fsE, layout, o = {}) => device.createRenderPipeline({ layout,
+  vertex: { module: m, entryPoint: vsE, buffers: o.buffers || [], constants: o.constants },
+  fragment: { module: m, entryPoint: fsE, targets: [{ format: HDR, blend: o.blend }] },
+  primitive: { topology: o.strip ? 'triangle-strip' : 'triangle-list', cullMode: o.cull || 'none' },
+  depthStencil: { format: DEPTH, depthWriteEnabled: o.depthWrite || !o.blend, depthCompare: 'greater' }, multisample: { count: AA } });

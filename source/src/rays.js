@@ -82,7 +82,7 @@ const W_RBLUR = /*wgsl*/`
 const RSTEPS = [32, 24, 16][LV];
 const mRays = mod(W_SCENE + W_RAYS.replace('texture_depth_multisampled_2d', AA > 1 ? 'texture_depth_multisampled_2d' : 'texture_depth_2d')), mRBlur = mod(W_RBLUR);
 const bglRays = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: { sampleType: 'depth', multisampled: AA > 1 } }, { binding: 1, visibility: SS.FRAGMENT, buffer: {} }] });
-const pRays = device.createRenderPipeline({ layout: lay(bgl0, bglRays, bglOcean), vertex: { module: mRays, entryPoint: 'vs' }, fragment: { module: mRays, entryPoint: 'fs', targets: [{ format: HDR }] } });
+const pRays = device.createRenderPipeline({ layout: lay(bgl0, bglRays), vertex: { module: mRays, entryPoint: 'vs' }, fragment: { module: mRays, entryPoint: 'fs', targets: [{ format: HDR }] } });
 const pRBlur = device.createRenderPipeline({ layout: 'auto', vertex: { module: mRBlur, entryPoint: 'vs' }, fragment: { module: mRBlur, entryPoint: 'fs', targets: [{ format: HDR }] } });
 const RYU = new Float32Array(4), uRays = ubuf(16);
 let rTex = [], passRays, passRBlur, bgRays, bgRBlur, vRays;
@@ -98,6 +98,6 @@ function rayTargets(W, H, vDp) {
 }
 function rayPasses(e) {
   RYU[2] = frameN % 64; Q.writeBuffer(uRays, 0, RYU);
-  let r = e.beginRenderPass(passRays); r.setPipeline(pRays); r.setBindGroup(0, bg0); r.setBindGroup(1, bgRays); r.setBindGroup(2, bgOcean); r.draw(3); r.end();
+  let r = e.beginRenderPass(passRays); r.setPipeline(pRays); r.setBindGroup(0, bg0); r.setBindGroup(1, bgRays); r.draw(3); r.end();
   r = e.beginRenderPass(passRBlur); r.setPipeline(pRBlur); r.setBindGroup(0, bgRBlur); r.draw(3); r.end();
 }
