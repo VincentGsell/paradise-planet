@@ -37,11 +37,14 @@ for (let c = 0; c < NCASC; c++) {
 }
 // which (kind, LOD) buckets each cascade draws: near ones the detailed plants, the far one trees only
 const SHB = [[0, 1, 3, 4, 6, 7, 9, 10, 12, 13], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13], [1, 2, 4, 5, 7, 8]];
-const SHC = new Float64Array(3);
+const SHC = new Float64Array(3), SSUN = new Float64Array(3);
 let sunUp = true;
 // the cascade matrices (camera-relative), written into the frame uniform by writeFrame
 function shadowMatrices() {
-  const sx = FU[32], sy = FU[33], sz = FU[34];
+  // the sun of the shadow maps moves in steps of 0.07 degrees: between two steps the texel grid stands still (a grid
+  // that turns a little every frame makes the long shadows of a low sun crawl)
+  if (FU[32] * SSUN[0] + FU[33] * SSUN[1] + FU[34] * SSUN[2] < 0.99999925) { SSUN[0] = FU[32]; SSUN[1] = FU[33]; SSUN[2] = FU[34]; }
+  const sx = SSUN[0], sy = SSUN[1], sz = SSUN[2];
   let ax = sz, az = -sx; const al = hypot(ax, az) || 1; ax /= al; az /= al; // x axis: horizontal, across the sun
   const bx = sy * az, by = sz * ax - sx * az, bz = -sy * ax;                  // y axis: sun x x-axis
   sunUp = (CP[0] * sx + CP[1] * sy + CP[2] * sz) / v3len(CP, 0) > -0.06;

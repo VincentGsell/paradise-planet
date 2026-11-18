@@ -8,6 +8,7 @@ window.PP = {
   gpu: () => gpuMs,
   draws: () => lastDraw,
   slotsFree: () => nFree,
+  pace: (i) => { timeIdx = i; },
 };
 // ?shot: no menu, full resolution, time stopped (the harness drives the frames)
 if (URLQ.has('shot')) {
