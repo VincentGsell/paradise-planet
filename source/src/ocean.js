@@ -104,7 +104,7 @@ function oceanFrame() {
   const o = OU;
   o[0] = 1; o[1] = R - r; o[2] = ftime % REPEAT; o[3] = 1.6;
   o[4] = ABSORB[0]; o[5] = ABSORB[1]; o[6] = ABSORB[2]; o[7] = 0.6;
-  o[8] = SCATTER[0]; o[9] = SCATTER[1]; o[10] = SCATTER[2]; o[11] = 1;
+  o[8] = SCATTER[0]; o[9] = SCATTER[1]; o[10] = SCATTER[2]; o[11] = 0.45;
   o[12] = WAX[0]; o[13] = WAX[1]; o[14] = WAX[2]; o[15] = 1;
   o[16] = WAX[3]; o[17] = WAX[4]; o[18] = WAX[5]; o[19] = HSIG;
   for (let c = 0; c < 3; c++) { const L = CASC[c]; o[20 + c * 4] = WPOS[0] - L * floor(WPOS[0] / L); o[21 + c * 4] = WPOS[1] - L * floor(WPOS[1] / L); o[22 + c * 4] = 1 / L; o[23 + c * 4] = L / WAVE_N; }

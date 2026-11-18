@@ -11,7 +11,7 @@ import { transformSync } from 'esbuild';
 const here = path.dirname(fileURLToPath(import.meta.url));
 // concatenation order matters: every file sees what the earlier ones declared
 const FILES = ['quality.js', 'math.js', 'noise.js', 'sh_common.js', 'sh_terrain.js', 'sh_sky.js', 'sh_ocean.js', 'sh_clouds.js', 'sh_life.js', 'sh_post.js',
-  'gpu.js', 'planet.js', 'atmo.js', 'ocean.js', 'clouds.js', 'life.js', 'props.js', 'shadow.js', 'main.js'];
+  'gpu.js', 'planet.js', 'atmo.js', 'ocean.js', 'clouds.js', 'life.js', 'props.js', 'shadow.js', 'rays.js', 'main.js'];
 const dev = process.argv.includes('--dev'), readable = dev || process.argv.includes('--readable');
 const out = dev ? 'dev.html' : 'index.html';
 if (dev) FILES.push('dev.js');

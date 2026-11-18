@@ -57,12 +57,12 @@ function resize() {
   passScene = { colorAttachments: [{ view: AA > 1 ? tMS.createView() : vScene, resolveTarget: AA > 1 ? vScene : undefined, loadOp: 'clear', storeOp: AA > 1 ? 'discard' : 'store', clearValue: [0, 0, 0, 1] }],
     depthStencilAttachment: { view: vDp, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' } };
   passComp = { colorAttachments: [colorAtt(vComp, true)] };
-  cloudTargets(W, H, vDp);
+  cloudTargets(W, H, vDp); rayTargets(W, H, vDp);
   bgComp = [0, 1].map((i) => device.createBindGroup({ layout: bglComp, entries: [{ binding: 0, resource: vScene }, { binding: 1, resource: vDp }, { binding: 2, resource: { buffer: uStars } },
     { binding: 3, resource: cHist[i][0].createView() }, { binding: 4, resource: cHist[i][1].createView() }] }));
   passPost = { colorAttachments: [{ view: null, loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 1] }] };
   bgPost = device.createBindGroup({ layout: bglPost, entries: [{ binding: 0, resource: vComp }, { binding: 1, resource: vBl[0] }, { binding: 2, resource: sLin },
-    { binding: 3, resource: tBlack.createView() }, { binding: 4, resource: { buffer: bExpo } }] });
+    { binding: 3, resource: vRays }, { binding: 4, resource: { buffer: bExpo } }] });
   bgExpo = device.createBindGroup({ layout: bglExpo, entries: [{ binding: 0, resource: vBl[NB - 1] }, { binding: 1, resource: { buffer: bExpo } }] });
   bloomPass = []; bloomBG = [];
   for (let i = 0; i < NB; i++) { bloomPass.push({ colorAttachments: [colorAtt(vBl[i], true)] }); bloomBG.push(blitBG(i ? vBl[i - 1] : vComp)); }
@@ -226,7 +226,7 @@ function render() {
   r.setBindGroup(2, bgOcean);
   r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, nWater);
   r.end();
-  cloudMarch(e);
+  cloudMarch(e); rayPasses(e);
   r = e.beginRenderPass(passComp); r.setPipeline(pComp); r.setBindGroup(0, bg0); r.setBindGroup(1, bgComp[cPing]); r.setBindGroup(2, bgOcean); r.draw(3); r.end();
   for (let i = 0; i < bloomPass.length; i++) {
     r = e.beginRenderPass(bloomPass[i]); r.setPipeline(i === 0 ? pDown0 : i < NB ? pDown : pUp); r.setBindGroup(0, bloomBG[i]); r.draw(3); r.end();

@@ -131,6 +131,13 @@ struct Blade { a: vec4f, b: vec4u };
 @group(3) @binding(0) var<storage, read> BL: array<Blade>;
 override ROWS: u32 = 4u;
 struct GO { @builtin(position) clip: vec4f, @location(0) rel: vec3f, @location(1) n: vec3f, @location(2) up: vec3f, @location(3) c: vec4f, @location(4) @interpolate(flat) h: f32 };
+fn rootShadow(rel: vec3f, up: vec3f) -> f32 {
+  let d = length(rel); if (d > F.shp.y * 0.85) { return 1.0; }
+  let c = select(1u, 0u, d < F.shp.x * 0.8);
+  let q = F.shm[c] * vec4f(rel + up * 0.15, 1.0); let uv = vec2f(q.x * 0.5 + 0.5, 0.5 - q.y * 0.5);
+  if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0))) { return 1.0; }
+  return textureSampleCompareLevel(tShadow, sCmp, uv, c, q.z - 0.0008);
+}
 // wind: a steady lean plus gusts travelling along the wind (anchored to the ground), and a flutter
 fn windBend(rel: vec3f, ph: f32) -> vec3f {
   let w = LF.wind.xyz;
@@ -160,7 +167,7 @@ const TAUW = 6.2831853 / 38.0; // the gust pattern repeats every 76 m (the camer
   o.n = normalize(facing + up * 0.6 + across * side * 0.3);
   o.up = up;
   o.c = vec4f(row, m.y, m.z, rnd(h, 9u));
-  o.h = f32(h & 0xffffu);
+  o.h = rootShadow(bl.a.xyz, up);
   return o;
 }
 @fragment fn fsGrass(i: GO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
@@ -173,7 +180,7 @@ const TAUW = 6.2831853 / 38.0; // the gust pattern repeats every 76 m (the camer
   tip = mix(tip, tip * vec3f(1.2, 0.95, 0.7), i.c.w * 0.5);
   let alb = mix(base, tip, smoothstep(0.0, 0.9, row)) * (0.85 + 0.3 * detail(2u, i.rel, foot));
   let cs = cloudShadow(i.rel);
-  let sun = sunAt(up, 1.0) * cs.x * sunShadow(i.rel, up);
+  let sun = sunAt(up, 1.0) * cs.x * i.h;
   let sky = skyIrr(up, 1.0) * (0.45 + 0.55 * cs.y);
   let l = F.sun.xyz;
   let ndl = max(dot(n, l), 0.0);
@@ -204,7 +211,7 @@ const TAUW = 6.2831853 / 38.0; // the gust pattern repeats every 76 m (the camer
     n = up; c = vec4f(1.0, f32(fl.b.z % 6u), length(corner), rnd(h, 7u));
   }
   var o: GO;
-  o.clip = F.vp * vec4f(p, 1.0); o.rel = p; o.n = n; o.up = up; o.c = c; o.h = 0.0;
+  o.clip = F.vp * vec4f(p, 1.0); o.rel = p; o.n = n; o.up = up; o.c = c; o.h = rootShadow(fl.a.xyz, up);
   return o;
 }
 const PETALS = array<vec3f, 6>(vec3f(0.92, 0.9, 0.85), vec3f(0.95, 0.75, 0.08), vec3f(0.55, 0.25, 0.75), vec3f(0.9, 0.25, 0.15), vec3f(0.98, 0.55, 0.65), vec3f(0.35, 0.45, 0.95));
@@ -218,7 +225,7 @@ const PETALS = array<vec3f, 6>(vec3f(0.92, 0.9, 0.85), vec3f(0.95, 0.75, 0.08), 
     alb = mix(alb * vec3f(0.6, 0.45, 0.15), alb, smoothstep(0.2, 0.45, r));
   }
   let cs = cloudShadow(i.rel);
-  let sun = sunAt(up, 1.0) * cs.x; let sky = skyIrr(up, 1.0) * (0.45 + 0.55 * cs.y);
+  let sun = sunAt(up, 1.0) * cs.x * i.h; let sky = skyIrr(up, 1.0) * (0.45 + 0.55 * cs.y);
   let ndl = abs(dot(normalize(i.n), F.sun.xyz)) * 0.7 + 0.3 * max(dot(up, F.sun.xyz), 0.0);
   return vec4f(alb * (sun * ndl / PI + sky / PI), 1.0);
 }
