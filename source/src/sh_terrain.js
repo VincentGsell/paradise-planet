@@ -99,10 +99,12 @@ fn groundAlbedo(h: f32, n: vec3f, up: vec3f, rel: vec3f, foot: f32) -> vec3f {
   // beach
   let beachTop = 1.6 + n1 * 2.2;
   // meadow and forest floor
-  let meadow = mix(vec3f(0.20, 0.36, 0.09), vec3f(0.34, 0.42, 0.13), smoothstep(0.4, 0.75, n1));
-  let forest = vec3f(0.10, 0.20, 0.06);
+  // the colour of the grass seen from afar; up close, the soil between the blades
+  var meadow = mix(vec3f(0.085, 0.15, 0.035), vec3f(0.15, 0.19, 0.05), smoothstep(0.4, 0.75, n1));
+  meadow = mix(vec3f(0.06, 0.07, 0.03), meadow, smoothstep(6.0, 40.0, length(rel)));
+  let forest = vec3f(0.045, 0.085, 0.025);
   var land = mix(meadow, forest, smoothstep(0.52, 0.66, n0 + (n2 - 0.5) * 0.2) * (1.0 - smoothstep(0.35, 0.5, a)));
-  let alpine = vec3f(0.30, 0.33, 0.16);
+  let alpine = vec3f(0.17, 0.19, 0.09);
   land = mix(land, alpine, smoothstep(0.32, 0.48, a));
   let rock = mix(vec3f(0.30, 0.27, 0.24), vec3f(0.42, 0.40, 0.37), n2) * (0.85 + 0.3 * n3);
   land = mix(land, rock, smoothstep(0.42, 0.62, slope + (n2 - 0.5) * 0.25) );

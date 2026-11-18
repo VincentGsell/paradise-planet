@@ -5,7 +5,7 @@
 // over, a 50 km one gets taller ones.
 const CK = clamp(R / 15000, 0.6, 1.3);
 const CBASE = clamp(0.042 * R, 380, 950), CTHICK = clamp(0.075 * R, 520, 1500);
-const CSTEPS = [64, 48, 32][LV], CDIV = LV > 1 ? 4 : 2, CSHN = [1024, 768, 512][LV];
+const CSTEPS = [64, 48, 32][LV], CSHN = [1024, 768, 512][LV];
 const tCShape = device.createTexture({ size: [128, 128, 128], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 4, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 const tCDetail = device.createTexture({ size: [32, 32, 32], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 3, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 {
@@ -46,7 +46,9 @@ const pCTaa = device.createRenderPipeline({ layout: lay(bgl0, bglCloud, bglCTaa)
 let cW = 0, cH = 0, cTex = [], passCMarch, bgCMarch, passCTaa = [], bgCTaa = [], cHist = [], cPing = 0;
 function cloudTargets(W, H, vDp) {
   for (const t of cTex) t.destroy();
-  cW = max(1, ceil(W / CDIV)); cH = max(1, ceil(H / CDIV));
+  // about a million marched pixels at most (a third of 4K, half of 1440p); Low: a quarter
+  const div = max(LV > 1 ? 4 : 2, round(sqrt(W * H / 0.95e6)));
+  cW = max(1, ceil(W / div)); cH = max(1, ceil(H / div));
   const U = TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING;
   const mc = tex(cW, cH, HDR, U), mt = tex(cW, cH, 'r16float', U);
   const h = [[tex(cW, cH, HDR, U), tex(cW, cH, 'r16float', U)], [tex(cW, cH, HDR, U), tex(cW, cH, 'r16float', U)]];

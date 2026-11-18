@@ -4,7 +4,6 @@
 await say('Shaping the planet…', 0.1, 400);
 
 // ---------------------------------------------------------------- pipelines of the scene
-const W_SCENE = W_FRAME + W_NOISE + W_ATMO + W_LIGHT + W_WATER + W_PATCH + W_TERRAIN_VS;
 const mTerr = mod(W_SCENE + W_GROUND + W_TERRAIN);
 const mSurf = mod(W_SCENE + W_SURFACE.replace('@group(1) @binding(2)', '@group(1) @binding(2)'));
 const scenePipe = (m, vsE, fsE, layout, o = {}) => device.createRenderPipeline({ layout,
@@ -14,6 +13,9 @@ const scenePipe = (m, vsE, fsE, layout, o = {}) => device.createRenderPipeline({
   depthStencil: { format: DEPTH, depthWriteEnabled: o.depthWrite || !o.blend, depthCompare: 'greater' }, multisample: { count: AA } });
 const pTerrain = scenePipe(mTerr, 'vs', 'fs', lay(bgl0, bglTerr, bglOcean));
 const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater, bglOcean), { blend: OVER, depthWrite: true });
+const mGrass = mod(W_LIFE + W_GRASS_DRAW), layGrass = lay(bgl0, bglTerr, bglLife, bglRead);
+const pGrass = scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
+const pFlower = scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
 const mBlit = mod(W_BLIT);
 const bglBlit = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: {} }, { binding: 1, visibility: SS.FRAGMENT, sampler: {} }] });
 const blitPipe = (e, add) => device.createRenderPipeline({ layout: lay(bglBlit), vertex: { module: mBlit, entryPoint: 'vs' },
@@ -209,10 +211,14 @@ function render() {
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();
   lastDraw = lodUpdate(e, BUILDS);
-  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e);
+  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e);
   let r = e.beginRenderPass(passScene);
   r.setBindGroup(0, bg0); r.setBindGroup(2, bgOcean);
   r.setPipeline(pTerrain); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, lastDraw);
+  r.setBindGroup(2, bgLife);
+  r.setPipeline(pGrass); r.setBindGroup(3, bgGrassR); r.drawIndirect(bGArgs, 0);
+  r.setPipeline(pFlower); r.setBindGroup(3, bgFlowerR); r.drawIndirect(bGArgs, 16);
+  r.setBindGroup(2, bgOcean);
   r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.drawIndexed(NIDX, nWater);
   r.end();
   cloudMarch(e);

@@ -9,7 +9,7 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ? process.argv[i + 1] : d; };
 const poses = arg('poses', '1,2,3,4,5,6,7,8').split(',').map(Number);
 const q = arg('q', '0'), km = arg('km', '30'), W = +arg('w', 2560), H = +arg('h', 1440), out = path.join(root, arg('out', 'out/shots')), tag = arg('tag', '');
-const hour = arg('hour', '');
+const hour = arg('hour', ''), prof = process.argv.includes('--prof');
 mkdirSync(out, { recursive: true });
 const browser = await puppeteer.launch({
   executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true,
@@ -21,7 +21,7 @@ const logs = [];
 page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning' || /GPU|error/i.test(t)) logs.push(`[${m.type()}] ${t}`); });
 page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
 for (const p of poses) {
-  const url = pathToFileURL(path.join(root, 'dev.html')).href + `?shot&q=${q}&km=${km}&pose=${p}${hour ? '&hour=' + hour : ''}`;
+  const url = pathToFileURL(path.join(root, 'dev.html')).href + `?shot&q=${q}&km=${km}&pose=${p}${hour ? '&hour=' + hour : ''}${prof ? '&prof' : ''}`;
   await page.goto(url);
   const t0 = Date.now();
   // wait for the page to be up, then for the terrain to settle (no build request for 30 frames)
@@ -37,6 +37,10 @@ for (const p of poses) {
   const info = await page.evaluate(() => ({ gpu: PP.gpu(), draws: PP.draws(), free: PP.slotsFree(), frames: PP.frames() })).catch(() => ({}));
   const file = path.join(out, `pose${p}${tag ? '_' + tag : ''}.png`);
   await page.screenshot({ path: file });
+  if (prof) {
+    const pr = await page.evaluate(() => window.PROF);
+    console.log(Object.entries(pr || {}).sort((a, b) => b[1] - a[1]).map(([k, v]) => `  ${k.padEnd(18)} ${v.toFixed(2)} ms`).join('\n'));
+  }
   console.log(`pose ${p}: ${((Date.now() - t0) / 1000).toFixed(1)} s, gpu ${info.gpu?.toFixed?.(2)} ms, ${info.draws} patches, ${info.free} free slots -> ${path.relative(root, file)}`);
 }
 // the first distinct errors only (one GPU error cascades into many)
