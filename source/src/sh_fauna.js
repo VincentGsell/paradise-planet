@@ -145,7 +145,7 @@ struct PO2 { @builtin(position) clip: vec4f, @location(0) uv: vec2f, @location(1
 @vertex fn vsFirefly(@builtin(vertex_index) vi: u32, @builtin(instance_index) ii: u32) -> PO2 {
   var o: PO2;
   let an = AN[ii]; let up = octDec(an.b.x); let h = an.b.y; let t = LF.gust.x;
-  let dusk = 1.0 - smoothstep(-0.12, 0.04, dot(normalize(F.cam.xyz), F.sun.xyz));
+  let dusk = 1.0 - smoothstep(-0.1, -0.01, dot(normalize(F.cam.xyz), F.sun.xyz));
   if (dusk <= 0.0) { o.clip = vec4f(0.0, 0.0, 2.0, 1.0); return o; }
   let tA = normalize(cross(up, vec3f(0.31, 0.83, 0.47))); let tB = cross(up, tA);
   let ph = rnd(h, 1u) * 6.28;

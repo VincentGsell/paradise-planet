@@ -11,7 +11,7 @@ const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater), { blend: OVER, d
 const mGrass = mod(W_LIFE + W_GRASS_DRAW);
 const pGrass = scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
 const pFlower = scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
-const mProps = mod(W_LIFE + W_PROPS_DRAW);
+const mProps = mod(W_LIFE + W_WLIT + W_PROPS_DRAW);
 const pProps = scenePipe(mProps, 'vs', 'fs', layGrass, { buffers: [vlProps] });
 const mBlit = mod(W_BLIT);
 const bglBlit = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: {} }, { binding: 1, visibility: SS.FRAGMENT, sampler: {} }] });
@@ -96,6 +96,15 @@ const lonOf = (x, z) => atan2(z, x);
 // local solar time (h) at the camera
 const localHour = () => { let h = 12 + (lonOf(CP[0], CP[2]) - sunPhi) / TAU * 24; h %= 24; return h < 0 ? h + 24 : h; };
 const setHour = (h) => { sunPhi = lonOf(CP[0], CP[2]) - (h - 12) / 24 * TAU; };
+// the evening hour at which the sun stands `alt` rad above the horizon of the unit vertical (ux, uy, uz)
+function eveningHour(ux, uy, uz, alt) {
+  const cd = cos(DECL);
+  for (let h = 12; h < 24; h += 0.01) {
+    const phi = lonOf(ux, uz) - (h - 12) / 24 * TAU;
+    if (cd * cos(phi) * ux + sin(DECL) * uy + cd * sin(phi) * uz < sin(alt)) return h;
+  }
+  return 18.5;
+}
 // places the camera at p looking at t (body frame)
 function lookAt(px, py, pz, tx, ty, tz) {
   CP[0] = px; CP[1] = py; CP[2] = pz; CV.fill(0);
@@ -111,6 +120,7 @@ const groundAt = (x, y, z) => { const l = sqrt(x * x + y * y + z * z); return he
 // One coastal region is chosen (a sandy shore with land rising behind it); every viewpoint is set around it.
 const POSES = [];
 {
+  rseed(2026); // the choice of the coast does not depend on what drew random numbers before
   const N = 24000, d = new Float64Array(3), e = new Float64Array(3);
   let best = -1e9, bd = new Float64Array(3);
   for (let i = 0; i < N; i++) {
@@ -149,14 +159,64 @@ const POSES = [];
     return [p[0] * r, p[1] * r, p[2] * r];
   };
   const pose = (a, b, hour, sun) => POSES.push([...a, ...b, hour, sun || 0]);
+  // a beach facing the sunset: the sun's direction at 18:20 (west, made horizontal) crosses open sea for 2 km
+  let SUNSET = [at(-40, -20, 1.7), at(60, 140, 0, 0)], SUNH = 18.3;
+  {
+    SUNH = eveningHour(U[0], U[1], U[2], 0.06);
+    const phi = lonOf(U[0] * R, U[2] * R) - (SUNH - 12) / 24 * TAU, cd = cos(DECL);
+    let qx = cd * cos(phi), qy = sin(DECL), qz = cd * sin(phi); const k = qx * U[0] + qy * U[1] + qz * U[2]; qx -= U[0] * k; qy -= U[1] * k; qz -= U[2] * k;
+    const l = hypot(qx, qy, qz); qx /= l; qy /= l; qz /= l;
+    const al = qx * lx + qy * ly + qz * lz, ou = qx * sx + qy * sy + qz * sz; // the sun direction in (along, out)
+    for (let s = 0; s < 300; s++) {
+      const a = s * 2.399, rr = 60 + s * 9, ca = cos(a) * rr, co = sin(a) * rr, q = at(ca, co, 1.6);
+      const g = height(...(() => { const r2 = hypot(q[0], q[1], q[2]); return [q[0] / r2, q[1] / r2, q[2] / r2]; })(), 0);
+      if (g < 0.4 || g > 2.2) continue;
+      let wet = 0; for (let m = 1; m <= 10; m++) { const p2 = at(ca + al * m * 200, co + ou * m * 200, 0, 0), r2 = hypot(p2[0], p2[1], p2[2]); if (height(p2[0] / r2, p2[1] / r2, p2[2] / r2, 4) < -2) wet++; }
+      if (wet >= 9) { SUNSET = [q, at(ca + al * 100, co + ou * 100, 0, 6)]; break; }
+    }
+  }
+  // the forest edge: a point of the meadows 15 to 250 m above the sea, at the edge of the woods of groundAlbedo
+  // (n0 at 900 m + (n2 at 23 m - 0.5) x 0.2 crossing 0.55), the camera looking into them
+  const woods = (q) => vn(q[0] / 900, q[1] / 900, q[2] / 900) + (vn(q[0] / 23, q[1] / 23, q[2] / 23) - 0.5) * 0.2;
+  let FOREST = at(-200, -420, 1.8), FTGT = at(-60, -700, 10);
+  for (let s = 0; s < 400; s++) {
+    const a = s * 2.399, rr = 150 + s * 12, q = at(cos(a) * rr, sin(a) * rr, 1.8);
+    const g = hypot(q[0], q[1], q[2]) - R - 1.8; if (g < 15 || g > 250) continue;
+    const w0 = woods(q); if (w0 < 0.5 || w0 > 0.55) continue;
+    // the woods side: the neighbour 25 m away with the most woods
+    let best = -1, bq = null;
+    for (let k = 0; k < 8; k++) { const b = k / 8 * TAU, q2 = at(cos(a) * rr + cos(b) * 25, sin(a) * rr + sin(b) * 25, 6); const w = woods(q2); if (w > best) { best = w; bq = q2; } }
+    if (best > 0.62) { FOREST = q; FTGT = bq; break; }
+  }
   pose(at(0, 0, 0, R * 2.6), at(0, 0, 0, 0), 9.5);                         // 1 orbit
   pose(at(-2600, -3800, 0, CBASE + CTHICK + 900), at(300, 900, 0, 0), 16.9);  // 2 high altitude, above the clouds
   pose(at(-600, -900, 0, CBASE * 0.8), at(800, 900, 0, CBASE * 0.55), 16.8);   // 3 under the cloud layer
-  pose(at(-40, -20, 1.7), at(60, 140, 0, 0), 18.45, 1);                     // 4 the beach, facing the sunset
+  pose(SUNSET[0], SUNSET[1], SUNH, 1);                                      // 4 a beach facing the sunset over the open sea
   pose(at(30, -260, 1.6), at(160, -500, 8), 10.5);                          // 5 meadow at eye level
-  pose(at(-200, -420, 1.8), at(-60, -700, 10), 7.1, 1);                     // 6 forest edge, morning sun through the trees
-  pose(at(20, 160, -5), at(70, 300, -26), 12.5);                            // 7 shallow reef, looking down the slope
-  pose(at(0, 420, -38), at(60, 520, -42), 13);                              // 8 garden at 40 m
+  pose(FOREST, FTGT, 7.4);                                                   // 6 forest edge, morning sun through the trees
+  // under the sea: the first place along a spiral off the shore whose floor is in the wanted depth, the camera a few
+  // metres above it, looking along the floor where it stays in that depth
+  // the kelp's patches (sh_sea.js): detail(1) x 0.6 + detail(0) of (p + 50 m) x 0.4
+  const kelp = (q) => sstep(0.42, 0.62, vn(q[0] / 140, q[1] / 140, q[2] / 140) * 0.6 + vn((q[0] + 50) / 900, (q[1] + 50) / 900, (q[2] + 50) / 900) * 0.4);
+  const seaSpot = (lo, hi, up, look, clearing) => {
+    for (let s = 0; s < 1500; s++) {
+      const a = s * 2.399, rr = 40 + s * 3, ca = cos(a) * rr, co = abs(sin(a)) * rr + 30, q = at(ca, co, 0, 0), r2 = hypot(q[0], q[1], q[2]);
+      const g = height(q[0] / r2, q[1] / r2, q[2] / r2, 0); if (g < lo || g > hi) continue;
+      if (clearing && kelp(q) > 0.3) continue;
+      let bd = -1, bs = 0;
+      for (let k = 0; k < 12; k++) {
+        const b = k / 12 * TAU; let ok = 0;
+        for (let m = 1; m <= 4; m++) { const p2 = at(ca + cos(b) * m * 10, co + sin(b) * m * 10, 0, 0), r3 = hypot(p2[0], p2[1], p2[2]), g2 = height(p2[0] / r3, p2[1] / r3, p2[2] / r3, 0); if (g2 > lo - 6 && g2 < hi + 4) ok++; }
+        if (clearing && kelp(at(ca + cos(b) * 28, co + sin(b) * 28, 0, 0)) < 0.45) ok = 0;
+        if (ok > bs) { bs = ok; bd = b; }
+      }
+      if (bs >= 3) return [at(ca, co, 0, g + up), at(ca + cos(bd) * 40, co + sin(bd) * 40, 0, g + up + look)];
+    }
+    return clearing ? seaSpot(lo, hi, up, look, false) : [at(20, 200, -9), at(60, 300, -24)];
+  };
+  const REEF = seaSpot(-14, -10, 3, -5), GARDEN = seaSpot(-43, -36, 5, 2, true);
+  pose(REEF[0], REEF[1], 12.5);                                             // 7 the reef, a few metres over the floor
+  pose(GARDEN[0], GARDEN[1], 13);                                           // 8 garden at 40 m
 }
 // the scripted 60 s flight (dev.js): orbit -> above the clouds -> through them -> meadow -> beach -> dive
 const FLIGHT = [];

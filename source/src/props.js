@@ -129,6 +129,43 @@ const endMesh = (kind, lod, i0) => { (MESH[kind] ||= [])[lod] = [i0, PIX.length 
     }
     for (const [a, b, c] of fs) PIX.push(v0 + a, v0 + c, v0 + b);
     endMesh(4, lod, i0);
+    // brain coral: a round, flattened colony with meandering ridges
+    i0 = PIX.length; v0 = pvN;
+    const P5 = vs.map(([x, y, z]) => { const r = 1 + 0.07 * abs(snoise(x * 6, y * 6 + 3, z * 6)) - 0.035 + 0.12 * snoise(x * 1.6 + 9, y * 1.6, z * 1.6); return [x * r * 0.5, max(y * r * 0.42, -0.05) + 0.05, z * r * 0.5]; });
+    const N5 = P5.map(() => [0, 0, 0]);
+    for (const [a, b, c] of fs) {
+      const u = [P5[b][0] - P5[a][0], P5[b][1] - P5[a][1], P5[b][2] - P5[a][2]], w = [P5[c][0] - P5[a][0], P5[c][1] - P5[a][1], P5[c][2] - P5[a][2]];
+      const n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]];
+      for (const q of [a, b, c]) { N5[q][0] += n[0]; N5[q][1] += n[1]; N5[q][2] += n[2]; }
+    }
+    for (let i = 0; i < P5.length; i++) { const n = N5[i], l = hypot(n[0], n[1], n[2]) || 1, sh = 0.6 + 0.4 * clamp(P5[i][1] * 2.2, 0, 1); pv(P5[i][0], P5[i][1], P5[i][2], n[0] / l, n[1] / l, n[2] / l, 0.1, 0, 0, sh, sh, sh, 7); }
+    for (const [a, b, c] of fs) PIX.push(v0 + a, v0 + c, v0 + b);
+    endMesh(5, lod, i0);
+    // branching coral: a trunk splitting twice into tapering branches
+    rseed(606); i0 = PIX.length;
+    const grow = (p, d, len, rad, depth) => {
+      const q = [p[0] + d[0] * len, p[1] + d[1] * len, p[2] + d[2] * len], m = [(p[0] + q[0]) / 2 + (rnd() - 0.5) * len * 0.2, (p[1] + q[1]) / 2, (p[2] + q[2]) / 2 + (rnd() - 0.5) * len * 0.2];
+      const sh = 0.6 + 0.4 * depth / 2;
+      tube([p, m, q], [rad, rad * 0.85, rad * 0.7], [7, 5, 4][lod], [sh, sh, sh], 7, 0.2, 0.4);
+      if (depth >= (lod === 2 ? 1 : 2)) return;
+      const n = depth ? 2 : 3;
+      for (let k = 0; k < n; k++) {
+        const a = k / n * TAU + rnd() * 0.8, t = 0.45 + 0.25 * rnd();
+        const nd = [d[0] * 0.6 + cos(a) * t, d[1] * 0.6 + 0.35, d[2] * 0.6 + sin(a) * t], l = hypot(...nd);
+        grow(q, [nd[0] / l, nd[1] / l, nd[2] / l], len * 0.75, rad * 0.62, depth + 1);
+      }
+    };
+    grow([0, -0.05, 0], [0, 1, 0], 0.32, 0.06, 0);
+    endMesh(6, lod, i0);
+    // barrel sponge: a thick tube flaring open at the top
+    i0 = PIX.length;
+    const bp = [], br = [];
+    for (let i = 0; i <= 6; i++) { const t = i / 6; bp.push([0, -0.05 + t * 0.9, 0]); br.push(0.2 + 0.12 * t + 0.03 * sin(t * 9)); }
+    tube(bp, br, [12, 8, 6][lod], [0.85, 0.85, 0.85], 8, 0, 0.2);
+    const ip = bp.slice().reverse(), ir = br.slice().reverse().map((r) => r * 0.78);
+    ip[ip.length - 1] = [0, 0.35, 0];
+    tube(ip, ir, [12, 8, 6][lod], [0.35, 0.35, 0.35], 8, 0.2, 0);
+    endMesh(7, lod, i0);
   }
 }
 // pack: 24 bytes a vertex (indices are absolute: baseVertex 0)

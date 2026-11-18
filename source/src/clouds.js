@@ -4,7 +4,7 @@
 // Fair-weather cumulus. The layer follows the planet's size within bounds: a 10 km world keeps clouds you can fly
 // over, a 50 km one gets taller ones.
 const CK = clamp(R / 15000, 0.6, 1.3);
-let CLOUDBIAS = URLQ.has('clear') ? -0.6 : 0; // ?clear: no clouds (tests)
+let CLOUDBIAS = URLQ.has('clear') ? -0.6 : -0.07; // ?clear: no clouds (tests)
 const CBASE = clamp(0.042 * R, 380, 950), CTHICK = clamp(0.075 * R, 520, 1500);
 const CSTEPS = [64, 48, 32][LV], CSHN = [1024, 768, 512][LV];
 const tCShape = device.createTexture({ size: [128, 128, 128], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 4, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
@@ -23,12 +23,23 @@ const tCDetail = device.createTexture({ size: [32, 32, 32], dimension: '3d', for
   }
   c.end(); Q.submit([e.finish()]);
 }
+// the coverage cube map (the bake needs the planet's radius in the frame uniform)
+const writeFrame0 = () => { FU[36] = R; Q.writeBuffer(uFrame, 0, FU); };
+const CCN = 384, tCov = device.createTexture({ size: [CCN, CCN, 6], format: 'rgba8unorm', usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
+{
+  const m = mod(W_CCOV), bl = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d-array' } }] });
+  const p = device.createComputePipeline({ layout: lay(bgl0, bl), compute: { module: m, entryPoint: 'main' } });
+  writeFrame0();
+  const e = device.createCommandEncoder(), c = e.beginComputePass();
+  c.setPipeline(p); c.setBindGroup(0, bg0); c.setBindGroup(1, device.createBindGroup({ layout: bl, entries: [{ binding: 0, resource: tCov.createView({ dimension: '2d-array' }) }] }));
+  c.dispatchWorkgroups(CCN / 8, CCN / 8, 6); c.end(); Q.submit([e.finish()]);
+}
 // group 1 of the cloud passes
 const CU = new Float32Array(44), uCloud = ubuf(176);
 const bglCloud = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: VFC, buffer: {} },
-  { binding: 1, visibility: VFC, texture: { viewDimension: '3d' } }, { binding: 2, visibility: VFC, texture: { viewDimension: '3d' } }] });
+  { binding: 1, visibility: VFC, texture: { viewDimension: '3d' } }, { binding: 2, visibility: VFC, texture: { viewDimension: '3d' } }, { binding: 3, visibility: VFC, texture: { viewDimension: 'cube' } }] });
 const bgCloud = device.createBindGroup({ layout: bglCloud, entries: [{ binding: 0, resource: { buffer: uCloud } },
-  { binding: 1, resource: tCShape.createView() }, { binding: 2, resource: tCDetail.createView() }] });
+  { binding: 1, resource: tCShape.createView() }, { binding: 2, resource: tCDetail.createView() }, { binding: 3, resource: tCov.createView({ dimension: 'cube' }) }] });
 // the shadow map, then group 0 rebuilt with it
 const tCSh = tex(CSHN, CSHN, HDR, TU.STORAGE_BINDING | TU.TEXTURE_BINDING);
 const bg0NoSh = mkBG0(tTrans, tMulti, tIrr, tSkyV, tBlack);

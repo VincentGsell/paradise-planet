@@ -4,7 +4,7 @@
 // Vertical scale of the Earth's atmosphere on this planet: the Rayleigh scale height is 5 % of the radius. Lengths x k,
 // coefficients / k: the zenith optical depth stays the Earth's (OpenG `scaled_with`). The tiny horizon air mass is
 // partly made up with a little more scattering (BOOST), for warm sunsets.
-const AK = R / 1000 * 0.05 / 8, BOOST = 1.35;
+const AK = R / 1000 * 0.045 / 8, BOOST = 1.5;
 {
   const k = AK, b = BOOST, a = AU;
   a.set([5.802e-3 * b / k, 13.558e-3 * b / k, 33.1e-3 * b / k, R / 1000], 0);

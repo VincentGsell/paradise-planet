@@ -15,6 +15,8 @@ if (URLQ.has('shot')) {
   for (const id of ['t', 'o']) $(id).style.display = 'none';
   document.head.insertAdjacentHTML('beforeend', '<style>*{transition:none!important}</style>');
   if (URLQ.get('hour')) setHour(+URLQ.get('hour'));
+  // ?nudge=m: move the camera forward (tests)
+  if (URLQ.get('nudge')) { const m = +URLQ.get('nudge'); for (let c = 0; c < 3; c++) CP[c] += CB[c] * m; }
 }
 // ?prof: a GPU timestamp pair around every pass, summed per call site (function:line), in window.PROF (ms)
 if (URLQ.has('prof') && hasTS) {
@@ -69,7 +71,70 @@ if (URLQ.has('prof') && hasTS) {
     const now = performance.now(); if (last) log.frames.push(now - last); last = now;
     ft += dt; if (ft >= 60) { on = false; log.done = true; return; }
     cr(P, ft); cr(Q2, min(ft + 1.2, 65));
+    { const r = v3len(P, 0), g = groundAt(P[0], P[1], P[2]), lo = R + g + 2.5; if (r < lo) for (let k = 0; k < 3; k++) P[k] *= lo / r; }
     // look ahead, a little down toward the ground when low
     lookAt(P[0], P[1], P[2], Q2[0], Q2[1], Q2[2]);
   };
 }
+// LOD sanity: visible patches whose ancestor is visible too (overlaps), and duplicates
+PP.overlaps = () => {
+  const vis = new Map(); let dup = 0, ov = 0; const ex = [];
+  for (let i = 0; i < nDraw; i++) { const s = PTF[i * 12 + 8]; if (vis.has(s)) dup++; vis.set(s, i); }
+  for (const [s] of vis) {
+    let p = nPar[s], guard = 0;
+    while (p >= 0 && guard++ < 20) { if (vis.has(p)) { ov++; if (ex.length < 5) ex.push([s, nL[s], p, nL[p]]); break; } p = nPar[p]; }
+  }
+  // also: visible nodes whose key in the hash points elsewhere, and nodes with a parent link not matching geometry
+  let bad = 0;
+  for (const [s] of vis) { if (hGet(nKey[s]) !== s) bad++; const p = nPar[s]; if (p >= 0 && (nL[p] !== nL[s] - 1 || nX[p] !== nX[s] >> 1 || nY[p] !== nY[s] >> 1 || nF[p] !== nF[s])) bad++; }
+  return { n: nDraw, dup, ov, bad, ex };
+};
+// the relief along the view ray, where it meets the sea (screen point sx, sy in -1..1): heights at several cell sizes
+PP.probe = (sx, sy) => {
+  const tx = TANH * W / H, ty = TANH, d = [0, 0, 0];
+  for (let c = 0; c < 3; c++) d[c] = CB[c] + CB[6 + c] * sx * tx + CB[3 + c] * sy * ty;
+  const l = hypot(d[0], d[1], d[2]); for (let c = 0; c < 3; c++) d[c] /= l;
+  // intersect with the sphere of radius R
+  const b = CP[0] * d[0] + CP[1] * d[1] + CP[2] * d[2], cc = CP[0] ** 2 + CP[1] ** 2 + CP[2] ** 2 - R * R, t = -b - sqrt(b * b - cc);
+  const p = [CP[0] + d[0] * t, CP[1] + d[1] * t, CP[2] + d[2] * t], r = hypot(...p), u = p.map((v) => v / r);
+  const out = { t };
+  for (const mw of [0, 0.3, 1, 3, 10, 30, 100]) out['h' + mw] = height(u[0], u[1], u[2], mw);
+  out.raw0 = relief(u[0], u[1], u[2], 0);
+  // the visible patch containing it
+  const o = new Float64Array(3); cubeFace(u[0], u[1], u[2], o);
+  for (let i = 0; i < nDraw; i++) {
+    const s = PTF[i * 12 + 8]; if (nF[s] !== o[0]) continue;
+    const k = 2 / (1 << nL[s]), s0 = nX[s] * k - 1, t0 = nY[s] * k - 1;
+    if (o[1] >= s0 && o[1] < s0 + k && o[2] >= t0 && o[2] < t0 + k) { out.patch = { i, slot: s, level: nL[s], cell: nSize[s] / 32, hmin: nHmin[s], hmax: nHmax[s], par: nPar[s] }; break; }
+  }
+  return out;
+};
+PP.why = (sx, sy) => {
+  const tx = TANH * W / H, ty = TANH, d = [0, 0, 0];
+  for (let c = 0; c < 3; c++) d[c] = CB[c] + CB[6 + c] * sx * tx + CB[3 + c] * sy * ty;
+  const l = hypot(d[0], d[1], d[2]); for (let c = 0; c < 3; c++) d[c] /= l;
+  const b = CP[0] * d[0] + CP[1] * d[1] + CP[2] * d[2], cc = CP[0] ** 2 + CP[1] ** 2 + CP[2] ** 2 - R * R, t = -b - sqrt(b * b - cc);
+  const p = [CP[0] + d[0] * t, CP[1] + d[1] * t, CP[2] + d[2] * t], r = hypot(...p), u = p.map((v) => v / r);
+  const o = new Float64Array(3); cubeFace(u[0], u[1], u[2], o);
+  let s = roots[o[0]]; const path = [];
+  for (let g = 0; g < 20; g++) {
+    const q = s * 3, cx = nC[q] - CAM[0], cy = nC[q + 1] - CAM[1], cz = nC[q + 2] - CAM[2], dd = max(0, hypot(cx, cy, cz) - nRad[s]);
+    const planes = []; for (let k = 0; k < 12; k += 3) planes.push(+(cx * FR[k] + cy * FR[k + 1] + cz * FR[k + 2] + nRad[s]).toFixed(1));
+    const drawn = (() => { for (let i = 0; i < nDraw; i++) if (PTF[i * 12 + 8] === s) return i; return -1; })();
+    path.push({ s, L: nL[s], used: nUsed[s] === frameNo, split: nL[s] < LMAX && dd < LODQ * nSize[s], kids: nKid[s * 4], drawn, planes, rad: +nRad[s].toFixed(1), dist: +hypot(cx, cy, cz).toFixed(1) });
+    if (nKid[s * 4] < 0) break;
+    // the kid containing the point
+    const L = nL[s] + 1, k = 2 / (1 << L), ix = floor((o[1] + 1) / k), iy = floor((o[2] + 1) / k);
+    let nx = -1; for (let c = 0; c < 4; c++) { const q2 = nKid[s * 4 + c]; if (nX[q2] === ix && nY[q2] === iy) nx = q2; }
+    if (nx < 0) { path.push({ err: 'kid not found', ix, iy, kids: [0, 1, 2, 3].map((c) => [nX[nKid[s * 4 + c]], nY[nKid[s * 4 + c]]]) }); break; }
+    s = nx;
+  }
+  return { face: o[0], st: [o[1], o[2]], path: path.slice(-4) };
+};
+// read back an indirect-args buffer (counts per bucket)
+PP.readArgs = async (which) => {
+  const b = { props: bPArgs, grass: bGArgs, sea: bSArgs, fauna: bFArgs }[which];
+  const rb = device.createBuffer({ size: b.size, usage: BU.MAP_READ | BU.COPY_DST });
+  const e = device.createCommandEncoder(); e.copyBufferToBuffer(b, 0, rb, 0, b.size); Q.submit([e.finish()]);
+  await rb.mapAsync(GPUMapMode.READ); const a = Array.from(new Uint32Array(rb.getMappedRange())); rb.unmap(); return a;
+};

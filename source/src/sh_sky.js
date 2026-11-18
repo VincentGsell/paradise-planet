@@ -289,12 +289,12 @@ fn starField(rdw: vec3f, px: f32, sky: f32) -> vec3f {
       let s = starDir(f, uv); let dd = d - s; let e = dot(dd, dd) * inv;
       if (e > 12.0) { continue; }
       let h3 = pcg(h2); let gb = dot(s, GPOLE);
-      if (f32(h3 & 0xffffu) / 65536.0 > 0.7 + 0.3 * exp(-0.5 * gb * gb / 0.0625)) { continue; }
+      if (f32(h3 & 0xffffu) / 65536.0 > 0.18 + 0.5 * exp(-0.5 * gb * gb / 0.0625)) { continue; }
       let m = max(8.5 + 2.0 * log2(max(f32(h >> 8u) / 16777216.0, 1e-7)) * 0.30103, -1.5);
       acc += starColor(f32(h3 >> 16u) / 65536.0) * (exp2(-1.328771 * m) * exp(-e) * nrm);
     }
   }
-  return (acc * 0.0015 + milky(d) * 0.00002) * gain;
+  return (acc * 0.0008 + milky(d) * 0.00002) * gain;
 }
 struct Stars { rot: vec4f };
 @group(1) @binding(2) var<uniform> S: Stars;

@@ -8,7 +8,7 @@
 const LMAX = min(13, ceil(log2(R * PI / 2 / 32 / 0.3)));
 const MR = 0.4; // morph range
 const nF = new Uint8Array(SLOTS), nL = new Uint8Array(SLOTS), nX = new Uint32Array(SLOTS), nY = new Uint32Array(SLOTS);
-const nC = new Float64Array(SLOTS * 3), nRad = new Float64Array(SLOTS), nSize = new Float64Array(SLOTS), nKey = new Float64Array(SLOTS);
+const nC = new Float64Array(SLOTS * 3), nRad = new Float64Array(SLOTS), nRadW = new Float64Array(SLOTS), nSize = new Float64Array(SLOTS), nKey = new Float64Array(SLOTS);
 const nHmin = new Float64Array(SLOTS), nHmax = new Float64Array(SLOTS);
 const nUsed = new Int32Array(SLOTS), nKid = new Int32Array(SLOTS * 4).fill(-1), nPar = new Int32Array(SLOTS).fill(-1), nLive = new Uint8Array(SLOTS);
 const freeSl = new Int32Array(SLOTS); let nFree = 0;
@@ -60,27 +60,32 @@ const TD = new Float64Array(64);
 function makeNode(f, l, x, y, slot, par) {
   const n2 = 1 << l, k = 2 / n2, s0 = x * k - 1, t0 = y * k - 1;
   const size = R * PI / 2 / n2, cell = size / 32;
-  // 3 x 3 coarse heights
-  const mw = cell * 4; let lo = 1e9, hi = -1e9;
-  for (let j = 0; j < 3; j++) for (let i = 0; i < 3; i++) {
-    cubeDir(TD, 0, f, s0 + k * i * 0.5, t0 + k * j * 0.5);
+  // 5 x 5 heights of the octaves longer than half the patch (sampled finer than their wavelength), plus all that
+  // the finer octaves can add: a conservative range (a patch's sea surface is drawn from it)
+  const mw = size / 4; let lo = 1e9, hi = -1e9;
+  for (let j = 0; j < 5; j++) for (let i = 0; i < 5; i++) {
+    cubeDir(TD, 0, f, s0 + k * i * 0.25, t0 + k * j * 0.25);
     const h = relief(TD[0], TD[1], TD[2], mw); if (h < lo) lo = h; if (h > hi) hi = h;
   }
-  const rest = restAmp(mw) + (hi - lo) * 0.25 + 1;
+  const rest = restAmp(mw) + (hi - lo) * 0.15 + 1;
   lo = shape(lo - rest); hi = shape(hi + rest);
+  // under the sea, the patch also carries the sea surface (and its waves): the view test uses bounds that hold it
+  // (else a patch whose seabed is out of view while its water is in view leaves a hole in the sea); the LOD uses
+  // the ground's
+  const hiW = lo < 2 ? max(hi, 2.5) : hi;
   cubeDir(TD, 3, f, s0 + k * 0.5, t0 + k * 0.5);
   const rc = R + (lo + hi) * 0.5;
   nC[slot * 3] = TD[3] * rc; nC[slot * 3 + 1] = TD[4] * rc; nC[slot * 3 + 2] = TD[5] * rc;
   // bounding radius over the corners at both extreme heights
-  let rad = 0;
+  let rad = 0, radW = 0;
   for (let c = 0; c < 4; c++) {
     cubeDir(TD, 0, f, s0 + k * (c & 1), t0 + k * (c >> 1));
-    for (let e = 0; e < 2; e++) {
-      const rr = R + (e ? hi : lo), dx = TD[0] * rr - nC[slot * 3], dy = TD[1] * rr - nC[slot * 3 + 1], dz = TD[2] * rr - nC[slot * 3 + 2];
-      rad = max(rad, sqrt(dx * dx + dy * dy + dz * dz));
+    for (let e = 0; e < 3; e++) {
+      const rr = R + (e === 2 ? hiW : e ? hi : lo), dx = TD[0] * rr - nC[slot * 3], dy = TD[1] * rr - nC[slot * 3 + 1], dz = TD[2] * rr - nC[slot * 3 + 2];
+      const dd = sqrt(dx * dx + dy * dy + dz * dz); if (e < 2) rad = max(rad, dd); radW = max(radW, dd);
     }
   }
-  nRad[slot] = rad * 1.02 + size * 0.02; nSize[slot] = size; nHmin[slot] = lo; nHmax[slot] = hi;
+  nRad[slot] = rad * 1.02 + size * 0.02; nRadW[slot] = radW * 1.02 + size * 0.02; nSize[slot] = size; nHmin[slot] = lo; nHmax[slot] = hi;
   nF[slot] = f; nL[slot] = l; nX[slot] = x; nY[slot] = y; nPar[slot] = par; nLive[slot] = 1; nUsed[slot] = frameNo;
   nKid[slot * 4] = nKid[slot * 4 + 1] = nKid[slot * 4 + 2] = nKid[slot * 4 + 3] = -1;
   nKey[slot] = keyOf(f, l, x, y); hSet(nKey[slot], slot);
@@ -121,7 +126,7 @@ function visit(s) {
     if (nReq < MAXR) { reqS[nReq] = s; reqP[nReq++] = d / nSize[s]; }
   }
   // frustum: out of view, a patch near the camera still casts its shadow into it
-  const r = nRad[s];
+  const r = nRadW[s];
   for (let p = 0; p < 12; p += 3) if (cx * FR[p] + cy * FR[p + 1] + cz * FR[p + 2] < -r) { if (d < SHR[NCASC - 1] && nShOnly < SLOTS) SHO[nShOnly++] = s; return; }
   // below the horizon of the planet's bounding sphere: hidden behind it
   const pr = R + nHmax[s] + r, cr = sqrt(CAM[0] * CAM[0] + CAM[1] * CAM[1] + CAM[2] * CAM[2]);
@@ -133,7 +138,8 @@ function visit(s) {
   }
   record(s, nDraw++);
   // the sea surface is drawn over the patches that reach below the sea level
-  if (nHmin[s] < 2) WLU[nWater++] = nDraw - 1;
+  // (generously: where the land stands above it, the depth test hides it at no cost)
+  if (nHmin[s] < 40) WLU[nWater++] = nDraw - 1;
 }
 // the draw record of node s at index i
 function record(s, i) {

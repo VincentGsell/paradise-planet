@@ -67,3 +67,19 @@ const fibDir = (o, k, i, n) => {
   const phi = PI * (3 - sqrt(5)), y = 1 - 2 * (i + 0.5) / n, r = sqrt(max(0, 1 - y * y)), a = phi * i;
   o[k] = cos(a) * r; o[k + 1] = y; o[k + 2] = sin(a) * r;
 };
+
+// the periodic value noise of the shaders (detail noise, sh_common.js), for choosing places on the CPU
+const fract = (x) => x - floor(x);
+function hash13(x, y, z) {
+  x -= 256 * floor(x / 256); y -= 256 * floor(y / 256); z -= 256 * floor(z / 256);
+  let a = fract(x * 0.1031), b = fract(y * 0.1031), c = fract(z * 0.1031);
+  const d = a * (c + 31.32) + b * (b + 31.32) + c * (a + 31.32); a += d; b += d; c += d;
+  return fract((a + b) * c);
+}
+function vn(x, y, z) {
+  const ix = floor(x), iy = floor(y), iz = floor(z); let fx = x - ix, fy = y - iy, fz = z - iz;
+  fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy); fz = fz * fz * (3 - 2 * fz);
+  const l = (a, b, t) => a + (b - a) * t;
+  return l(l(l(hash13(ix, iy, iz), hash13(ix + 1, iy, iz), fx), l(hash13(ix, iy + 1, iz), hash13(ix + 1, iy + 1, iz), fx), fy),
+    l(l(hash13(ix, iy, iz + 1), hash13(ix + 1, iy, iz + 1), fx), l(hash13(ix, iy + 1, iz + 1), hash13(ix + 1, iy + 1, iz + 1), fx), fy), fz);
+}

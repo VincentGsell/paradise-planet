@@ -46,7 +46,7 @@ for (const p of poses) {
 // the first distinct errors only (one GPU error cascades into many)
 const seen = new Set();
 for (const l of logs) {
-  if (!l.startsWith('[error]') && !l.startsWith('[pageerror]')) continue;
+  if (!process.argv.includes('--all') && !l.startsWith('[error]') && !l.startsWith('[pageerror]')) continue;
   const k = l.split('\n')[0];
   if (seen.has(k) || seen.size > 8) continue;
   seen.add(k); console.log(l.slice(0, 700));

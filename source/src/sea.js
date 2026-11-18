@@ -1,7 +1,7 @@
 // ============================================================================
 // the garden under the sea: placement passes and draws (only while the camera is near the sea)
 // ============================================================================
-const KELP_R = [110, 85, 55][LV], SGRASS_R = [46, 36, 24][LV], SCHOOL_R = 140, KELP_DG = latDepth(3.2), SGRASS_DG = latDepth(0.85), SCHOOL_DG = latDepth(30);
+const KELP_R = [110, 85, 55][LV], SGRASS_R = [46, 36, 24][LV], SCHOOL_R = 140, KELP_DG = latDepth(3.2), SGRASS_DG = latDepth(0.85), SCHOOL_DG = latDepth(18);
 const bKelp = device.createBuffer({ size: KLMAX * 32, usage: BU.STORAGE }), bSGrass = device.createBuffer({ size: SGMAX * 32, usage: BU.STORAGE }), bSchools = device.createBuffer({ size: SCHMAX * 32, usage: BU.STORAGE });
 const bSArgs = device.createBuffer({ size: 64, usage: BU.STORAGE | BU.INDIRECT | BU.COPY_DST });
 const SARGS = new Uint32Array([14, 0, 0, 0, 10, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 0]);

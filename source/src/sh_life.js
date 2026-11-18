@@ -240,7 +240,7 @@ const PETALS = array<vec3f, 6>(vec3f(0.92, 0.9, 0.85), vec3f(0.95, 0.75, 0.08), 
 
 // ---- trees, palms, bushes, rocks: placement into (kind, LOD) buckets, each with its indirect draw
 // kinds: 0 broadleaf, 1 conifer, 2 palm, 3 bush, 4 rock
-const NKIND = 5, NLOD = 3, BCAP = [[3072, 14336, 49152], [1536, 8192, 24576], [768, 4096, 12288]][LV];
+const NKIND = 8, NLOD = 3, BCAP = [[3072, 14336, 49152], [1536, 8192, 24576], [768, 4096, 12288]][LV];
 const W_PROPS_CS = /*wgsl*/`
 struct Inst { a: vec4f, b: vec4u };
 struct DA { n: u32, count: atomic<u32>, first: u32, base: i32, inst: u32 };
@@ -259,8 +259,20 @@ fn emit(kind: u32, g: Ground, d: f32, scale: f32, extra: u32) {
 }
 @compute @workgroup_size(64) fn main(@builtin(workgroup_id) w: vec3u, @builtin(local_invocation_index) li: u32) {
   let g = ground(w.x + w.y * 65535u, li, u32(LF.k2.w));
-  if (!g.ok || g.h < 0.3) { return; }
+  if (!g.ok) { return; }
   let d = length(g.rel);
+  // the reef: corals and sponges on the sea floor, 5 to 52 m deep, in colourful patches
+  if (LAYER == 1u && g.h < -5.0) {
+    let depth = -g.h; let c = clamp(dot(g.n, g.up), 0.0, 1.0);
+    let reef = smoothstep(5.0, 9.0, depth) * (1.0 - smoothstep(44.0, 54.0, depth)) * smoothstep(0.35, 0.6, c) * smoothstep(0.35, 0.6, detail(2u, g.rel + 13.0, 0.0) * 0.6 + detail(1u, g.rel, 0.0) * 0.4);
+    let r = rnd(g.hash, 3u);
+    if (d < LF.k.w * 0.7 && r < reef * 0.75 && inView(g.rel, 3.0)) {
+      let k = select(select(7u, 6u, r < reef * 0.32), 5u, r < reef * 0.18);
+      emit(k, g, d, mix(0.5, 1.6, rnd(g.hash, 4u)) * select(1.0, 1.4, k == 7u), 0u);
+    }
+    return;
+  }
+  if (g.h < 0.3) { return; }
   let RAD = select(LF.k.w, LF.k2.x, LAYER == 0u);
   if (d > RAD) { return; }
   let b = biome(g.h, g.n, g.up, g.rel);
@@ -343,6 +355,7 @@ fn leaves(uv: vec2f, h: f32) -> f32 {
   return a;
 }
 @fragment fn fs(i: PO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
+  let fwx = fwidth(i.uv.x * 34.0);
   let kind = u32(i.m.w * 255.0 + 0.5);
   let up = normalize(i.up);
   var n = normalize(i.n);
@@ -359,12 +372,13 @@ fn leaves(uv: vec2f, h: f32) -> f32 {
     trans = 0.3;
   } else if (kind == 5u) { // palm frond: a comb of leaflets along the rachis
     let x = i.uv.x; let y = abs(i.uv.y - 0.5) * 2.0;
-    let leaflet = smoothstep(0.82, 0.62, fract(x * 34.0 + y * 2.2));
+    let fw = fwx;
+    let leaflet = mix(smoothstep(0.82, 0.62, fract(x * 34.0 + y * 2.2)), 1.0, smoothstep(0.25, 0.6, fw));
     let wid = sin(min(x, 0.98) * 3.14159) * 0.95 + 0.05;
     alpha = select(leaflet * (1.0 - smoothstep(wid - 0.08, wid, y)) * 3.0, 1.0, y < 0.06) ;
     trans = 0.45;
   }
-  if (kind != 0u && kind != 4u && kind != 6u) {
+  if (kind != 0u && kind != 4u && kind != 6u && kind < 7u) {
     if (!ff) { n = -n; }
   }
   if (alpha < 0.5) { discard; }
@@ -372,6 +386,14 @@ fn leaves(uv: vec2f, h: f32) -> f32 {
   alb *= 0.85 + 0.3 * fract(hv * 7.31);
   let foot = length(i.rel) * F.misc.x;
   if (kind == 4u) { alb *= 0.8 + 0.4 * detail(3u, i.rel, foot); }
+  if (kind >= 7u) {
+    // corals and sponges: a warm palette per colony, lit through the water
+    let pal = array<vec3f, 6>(vec3f(0.95, 0.35, 0.55), vec3f(1.0, 0.55, 0.18), vec3f(0.62, 0.3, 0.85), vec3f(0.95, 0.85, 0.25), vec3f(0.2, 0.75, 0.7), vec3f(0.9, 0.25, 0.2));
+    var ca = pal[u32(hv * 5.99)] * (0.55 + 0.45 * fract(hv * 13.7)) * (0.7 + 0.3 * i.m.r / max(i.m.g, 0.01));
+    if (kind == 8u) { ca = mix(vec3f(0.55, 0.35, 0.2), pal[u32(hv * 5.99)], 0.45); }
+    ca *= 0.75 + 0.5 * detail(3u, i.rel * 3.0, 0.0);
+    return vec4f(waterLit(ca, n, up, i.rel, 0.25, length(i.rel) * F.misc.x, ca * 0.004), 1.0);
+  }
   let cs = cloudShadow(i.rel);
   let sun = sunAt(up, 2.0) * cs.x * sunShadow(i.rel, n); let sky = skyIrr(up, 2.0) * (0.45 + 0.55 * cs.y);
   let l = F.sun.xyz;

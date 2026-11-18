@@ -122,13 +122,13 @@ struct Cloud {
 @group(1) @binding(0) var<uniform> C: Cloud;
 @group(1) @binding(1) var tShape: texture_3d<f32>;
 @group(1) @binding(2) var tDetail: texture_3d<f32>;
+@group(1) @binding(3) var tCov: texture_cube<f32>;
 fn sat(x: f32) -> f32 { return clamp(x, 0.0, 1.0); }
 fn remap(v: f32, l0: f32, h0: f32, l1: f32, h1: f32) -> f32 { return l1 + (v - l0) * (h1 - l1) / (h0 - l0); }
 fn windRot(p: vec3f) -> vec3f { return vec3f(dot(C.rot0.xyz, p), dot(C.rot1.xyz, p), dot(C.rot2.xyz, p)); }
 // coverage of the fair-weather field at a (wind-rotated) body point: cloud streets and clear patches
 fn coverage(q: vec3f) -> f32 {
-  let d = q / 3500.0;
-  let c = vnoise(d + 13.0) * 0.6 + vnoise(d * 2.3 + 41.0) * 0.28 + vnoise(d * 5.1 + 7.0) * 0.12;
+  let c = textureSampleLevel(tCov, sLin, q, 0.0).r;
   return sat(remap(c, 0.36 - C.layer.w, 0.74 - C.layer.w, 0.0, 0.92));
 }
 fn rayShell(o: vec3f, rd: vec3f, rad: f32) -> vec2f {
@@ -276,7 +276,7 @@ struct MO { @location(0) c: vec4f, @location(1) t: vec4f };
     if (all(uv > vec2f(0.0)) && all(uv < vec2f(1.0))) {
       let h = textureSampleLevel(histC, sLin, uv, 0.0);
       let ht = textureSampleLevel(histT, sLin, uv, 0.0).x;
-      let hc = clamp(h, lo - (hi - lo) * 0.25, hi + (hi - lo) * 0.25);
+      let hc = clamp(h, lo - (hi - lo) * 0.6, hi + (hi - lo) * 0.6);
       o.c = mix(c, hc, C.res.z);
       o.t = vec4f(mix(td, ht, select(0.9, 0.0, abs(ht - td) > td * 0.5)), 0.0, 0.0, 0.0);
     }
@@ -305,5 +305,27 @@ const W_CSHADOW = /*wgsl*/`
   for (var i = 0; i < 20; i++) { od += cloudAt(p0 + l * (a0 + (f32(i) + 0.5) * ds), 120.0, true, 1.0).d * ds; }
   od *= C.layer.z;
   textureStore(outSh, id.xy, vec4f(a0, a1, od, exp(-od * 0.12)));
+}
+`;
+
+// the coverage cube map (baked once): fbm of the planet's continuous simplex noise on the sphere, cloud systems of a
+// few kilometres with streets and clear patches, no lattice
+const W_CCOV = W_FRAME + W_NOISE + /*wgsl*/`
+@group(1) @binding(0) var outC: texture_storage_2d_array<rgba8unorm, write>;
+const CUP = array<vec3f, 6>(vec3f(1, 0, 0), vec3f(-1, 0, 0), vec3f(0, 1, 0), vec3f(0, -1, 0), vec3f(0, 0, 1), vec3f(0, 0, -1));
+@compute @workgroup_size(8, 8) fn main(@builtin(global_invocation_id) id: vec3u) {
+  let n = textureDimensions(outC).x;
+  if (id.x >= n || id.y >= n) { return; }
+  let uv = (vec2f(id.xy) + 0.5) / f32(n) * 2.0 - 1.0;
+  // the cube-map face conventions of WebGPU (+X, -X, +Y, -Y, +Z, -Z)
+  var d: vec3f;
+  switch id.z {
+    case 0u: { d = vec3f(1.0, -uv.y, -uv.x); } case 1u: { d = vec3f(-1.0, -uv.y, uv.x); }
+    case 2u: { d = vec3f(uv.x, 1.0, uv.y); } case 3u: { d = vec3f(uv.x, -1.0, -uv.y); }
+    case 4u: { d = vec3f(uv.x, -uv.y, 1.0); } default: { d = vec3f(-uv.x, -uv.y, -1.0); }
+  }
+  let p = normalize(d) * (F.pl.x / 3200.0);
+  let c = 0.5 + 0.5 * (snoise(p) * 0.55 + snoise(p * 2.1 + 17.0) * 0.28 + snoise(p * 4.6 + 41.0) * 0.12 + snoise(p * 9.7 + 7.0) * 0.05);
+  textureStore(outC, vec2u(id.xy), id.z, vec4f(c, 0.0, 0.0, 1.0));
 }
 `;

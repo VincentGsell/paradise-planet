@@ -4,7 +4,7 @@
 // Kelp columns and tufts of sea grass are placed by the planet's lattice like the meadows; each column's leaves are
 // rebuilt in the vertex shader from the column alone (instance = column x leaf), so nothing but the columns is
 // stored. Fish swim in schools around anchors of a coarse lattice; two mantas glide over the garden.
-const KLPC = 300, KLMAX = [2200, 1400, 700][LV], SGMAX = [70000, 45000, 20000][LV], SCHMAX = 48, FPS = 40;
+const KLPC = 300, KLMAX = [2200, 1400, 700][LV], SGMAX = [70000, 45000, 20000][LV], SCHMAX = 48, FPS = 64;
 const W_SEA_CS = /*wgsl*/`
 struct Col { a: vec4f, b: vec4u };
 struct Args { n: u32, count: atomic<u32>, first: u32, base: u32 };
@@ -44,7 +44,7 @@ fn garden(depth: f32) -> f32 { return smoothstep(17.0, 24.0, depth) * (1.0 - smo
     }
   } else {
     // a school of fish over a cell, sometimes
-    if (depth > 8.0 && d < LF.k.w && rnd(g.hash, 3u) < 0.5 * smoothstep(8.0, 20.0, depth)) {
+    if (depth > 6.0 && d < LF.k.w && rnd(g.hash, 3u) < 0.8 * smoothstep(6.0, 14.0, depth)) {
       let i = atomicAdd(&SA[2].count, 1u);
       if (i < ${SCHMAX}u) { SC[i] = Col(vec4f(g.rel + g.up * mix(3.0, min(depth - 3.0, 14.0), rnd(g.hash, 4u)), 1.0), vec4u(octEnc(g.up), g.hash, 0u, 0u)); }
     }
@@ -175,7 +175,7 @@ struct FO { @builtin(position) clip: vec4f, @location(0) rel: vec3f, @location(1
   let tA = normalize(cross(up, vec3f(0.31, 0.83, 0.47))); let tB = cross(up, tA);
   let fh = pcg(ch ^ (k * 0x9E3779B9u));
   // the school turns around its anchor; each fish keeps its place in it, with a little drift
-  let rad = 5.0 + 6.0 * rnd(ch, 1u); let spd = (0.25 + 0.2 * rnd(ch, 2u)) * select(1.0, -1.0, rnd(ch, 3u) < 0.5);
+  let rad = 3.0 + 4.0 * rnd(ch, 1u); let spd = (0.25 + 0.2 * rnd(ch, 2u)) * select(1.0, -1.0, rnd(ch, 3u) < 0.5);
   let ang = t * spd / rad * 3.0 + rnd(ch, 4u) * 6.28;
   let off = (vec3f(rnd(fh, 1u), rnd(fh, 2u), rnd(fh, 3u)) - 0.5) * vec3f(3.5, 1.4, 3.5);
   let wob = vec3f(sin(t * 0.7 + rnd(fh, 4u) * 6.28), sin(t * 0.9 + rnd(fh, 5u) * 6.28) * 0.4, cos(t * 0.8 + rnd(fh, 6u) * 6.28)) * 0.35;
@@ -184,7 +184,7 @@ struct FO { @builtin(position) clip: vec4f, @location(0) rel: vec3f, @location(1
   let fwd = normalize((-tA * sa + tB * ca) * sign(spd));
   let side = cross(up, fwd);
   // body: nose, back, belly, two flanks, tail fork (local x along the body)
-  let L = 0.22 + 0.16 * rnd(ch, 6u);
+  let L = 0.3 + 0.3 * rnd(ch, 6u);
   let P = array<vec3f, 7>(vec3f(0.5, 0.0, 0.0), vec3f(0.0, 0.17, 0.0), vec3f(0.0, -0.13, 0.0), vec3f(0.05, 0.0, 0.09), vec3f(-0.42, 0.0, 0.0), vec3f(-0.62, 0.17, 0.0), vec3f(-0.62, -0.17, 0.0));
   let IDX = array<u32, 24>(0u, 1u, 3u, 0u, 3u, 2u, 1u, 4u, 3u, 3u, 4u, 2u, 0u, 3u, 1u, 0u, 2u, 3u, 4u, 5u, 6u, 4u, 6u, 5u);
   let id = IDX[vi]; var q = P[id];

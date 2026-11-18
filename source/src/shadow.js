@@ -27,7 +27,7 @@ struct SO { @builtin(position) clip: vec4f, @location(0) uv: vec2f, @location(1)
 `;
 const bg0Shd = mkBG0(tTrans, tMulti, tIrr, tSkyV, tCSh, tShDummy);
 const shDepth = { format: DEPTH, depthWriteEnabled: true, depthCompare: 'less', depthBias: 3, depthBiasSlopeScale: 2.5 };
-const mShT = mod(W_SCENE + W_SHTERR), mShP = mod(W_LIFE + W_PROPS_DRAW + W_SHPROPS);
+const mShT = mod(W_SCENE + W_SHTERR), mShP = mod(W_LIFE + W_WLIT + W_PROPS_DRAW + W_SHPROPS);
 const pShT = [], pShP = [], passSh = [];
 for (let c = 0; c < NCASC; c++) {
   pShT.push(device.createRenderPipeline({ layout: lay(bgl0, bglTerr), vertex: { module: mShT, entryPoint: 'vsShT', constants: { CASC: c } }, primitive: { cullMode: 'none' }, depthStencil: shDepth }));

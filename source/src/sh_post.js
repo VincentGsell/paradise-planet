@@ -84,8 +84,10 @@ var<workgroup> wacc: array<f32, 256>;
   for (var i = li; i < d.x * d.y; i += 256u) {
     let q = vec2u(i % d.x, i / d.x);
     let c = textureLoad(lowRes, q, 0).rgb;
-    let w = 0.2 + smoothstep(0.2, 0.7, f32(q.y) / f32(d.y));
-    s += log2(max(dot(c, vec3f(0.2126, 0.7152, 0.0722)), 1e-5)) * w; ws += w;
+    let lum = dot(c, vec3f(0.2126, 0.7152, 0.0722));
+    // the black of space does not count (seen from orbit, the planet is what the eye looks at)
+    let w = (0.2 + smoothstep(0.2, 0.7, f32(q.y) / f32(d.y))) * select(1.0, 0.02, F.cam.w > F.pl.y && lum < 2e-4);
+    s += log2(max(lum, 1e-5)) * w; ws += w;
   }
   acc[li] = s; wacc[li] = ws;
   workgroupBarrier();
@@ -96,7 +98,10 @@ var<workgroup> wacc: array<f32, 256>;
     let lum = exp2(avg);
     // under the sea the eye adapts fully: the garden stays bright as long as light reaches it
     let wet = F.cam.w < F.pl.x;
-    let tgt = select(0.2 / max(lum, 1e-5) * pow(clamp(lum / 0.1, 1e-4, 1.0), 0.45), 0.26 / max(lum, 1e-5), wet);
+    // from space the eye adapts to a sunlit planet (the black around it does not count)
+    let space = smoothstep(F.pl.y, F.pl.y * 1.4, F.cam.w);
+    let tgt0 = select(0.27 / max(lum, 1e-5) * pow(clamp(lum / 0.1, 1e-4, 1.0), 0.45), 0.26 / max(lum, 1e-5), wet);
+    let tgt = mix(tgt0, 1.25, space);
     let t = clamp(tgt, 0.25, select(24.0, 60.0, wet));
     if (E[1] == 0.0) { E[0] = t; E[1] = 1.0; }
     else { E[0] = exp2(mix(log2(E[0]), log2(t), 1.0 - exp(-F.sunc.w * 1.6))); }
