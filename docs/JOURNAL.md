@@ -27,6 +27,7 @@
 | L5 | herbe (GrassField d'OpenG), fleurs, arbres / palmiers / buissons / rochers (3 LOD), ombres en cascades, god rays, faune, pollen, lucioles | fait, à polir |
 | L6 | jardin sous-marin 18–55 m : kelp d'Abyssal Garden, herbiers, coraux mous, poissons, neige marine, rayons sous l'eau | fait, à polir |
 | L7 | critique visuel (3 passes), perf, README | en cours : perf validée, critique pas encore « mineur seulement » |
+| L8 | retours de Vincent après son 1er essai (18/11) : ombres qui clignotaient (cascade lointaine effacée une image sur deux), nuages en tranches, arrivée orbite → plage sur une 10 km, titre et menu en médaillon, temps dans le menu, touches selon le clavier et réassignables, README (OpenG / FMeX d'abord, puis l'IA) | fait (clignotement validé par Vincent) |
 
 ## Choix faits seul (à valider par Vincent)
 
@@ -64,7 +65,19 @@ d'eau en « codes-barres », des poses à côté de leur sujet (désormais cherc
 couleur (heure calée sur la hauteur du soleil, étalonnage heure dorée), le sous-marin vide (coraux, éponges, bancs de
 poissons, clairière dans le kelp), des stries d'altitude (bruit de détail étiré en vue rasante).
 
-Restent, selon la 3e passe (à reprendre) :
+4e passe (18/11, planète de 10 km, après L8) : pas encore « mineur seulement ». Ordre d'impact donné par le critique :
+1. sous l'eau à 10 km : pas de récif à la pose 7 (aucun corail ni poisson), relief en dents de scie, lamelles
+   flottantes ; kelp de la pose 8 couvert de grain (transparence tramée) et feuilles coupées par le plan proche ;
+2. rivages en escalier (et liseré cyan vu d'orbite), y compris à la dernière image de l'arrivée. Pistes écartées :
+   LOD du terrain (même au niveau max), ombres (`?nosh`), déplacement latéral des vagues, taille des patches. Les marches
+   sont fixes dans le monde, pas d'environ 1 m : piste suivante, la grille de la texture des vagues ou une grandeur
+   par sommet de l'eau ;
+3. ciel du couchant brûlé, sans disque solaire, bande claire à l'horizon (c'est aussi l'image finale de l'arrivée) ;
+4. nuages au limbe vus d'orbite (traînées sombres hors de l'atmosphère), franges tramées vues de haut ;
+5. prairie (pose 5) : roches presque noires, sol nu, herbe clairsemée ; sapins « en pagode » et trouées de lumière
+   (pose 6).
+
+Restaient, selon la 3e passe :
 - nuages : bords encore en peigne ou en damier par endroits, plafond trop uniforme vu de dessous ;
 - coraux encore trop lisses (« gelée ») et caustiques parfois dentelées sur les parois ;
 - palette encore un peu froide dans l'ombre, roches à réchauffer davantage ;
@@ -78,3 +91,8 @@ Restent, selon la 3e passe (à reprendre) :
   captures et mesures sans fenêtre.
 - Outils : `tools/shoot.mjs` (poses, `--prof` = temps GPU par passe, `--clear` sans nuages, `--hour`),
   `tools/flight.mjs` (vol scripté, rapport de perf, images).
+- Outils ajoutés le 18/11 : `tools/intro.mjs` (l'arrivée vue comme un joueur, images datées), `tools/ui-test.mjs`
+  (menu, touches, arrivée : 14 vérifications), `tools/flicker.mjs` + `flicker.py` (stabilité d'une vue fixe entre
+  images), `?cam=alt,pitch,yaw` (dev.html : la caméra au-dessus du sol, face au soleil).
+- Un clignotement ne se voit pas sur une image fixe : le critique ne peut pas le trouver, il faut comparer des images
+  successives (flicker.mjs) ou les yeux de Vincent.
