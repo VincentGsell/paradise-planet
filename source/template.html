@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang=en>
+<head>
+<meta charset=utf-8>
+<title>Paradise Planet</title>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=theme-color content=#0a1a2e>
+<style>
+/* The class on <body> is the state of the page:
+   l = loading, m = menu, g = in the world (g p while the mouse is captured), l e = failed to start */
+html { background: #0a1a2e; }
+body {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%; margin: 0; overflow: hidden;
+  background: radial-gradient(#1d4a6e, #0a1a2e 70%);
+  font: 700 clamp(13px, .7vw + .9vh, 36px)/1.4 system-ui, sans-serif; color: #fff8ea;
+  -webkit-user-select: none; user-select: none;
+}
+@media (orientation: portrait) and (pointer: coarse) {
+  body { width: 100dvh; height: 100dvw; transform-origin: 0 0; transform: rotate(90deg) translateY(-100%); }
+}
+/* the world: blurred and dimmed behind the menu, comes into focus when you fly */
+canvas {
+  position: absolute; width: 100%; height: 100%; touch-action: none; cursor: crosshair;
+  transition: filter 1s, transform 1s, opacity 2s;
+}
+body:not(.g) canvas { filter: blur(.7vmax) brightness(.6); transform: scale(1.04); }
+.l canvas { opacity: 0; }
+#m {
+  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: min(2em, 5vmin);
+  padding: 1em 1em 3em; text-align: center; background: radial-gradient(#0a1a2e00 30%, #0a1a2ecc);
+  transition: opacity .5s, visibility .5s;
+}
+.g #m, .m #l, .l #g { opacity: 0; visibility: hidden; }
+h1 {
+  margin: 0; font: 900 4.4em/1 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase;
+  color: #0000; background: linear-gradient(#fffdf4 20%, #ffd98a 55%, #ff9d5c);
+  -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 .06em .2em #000c);
+}
+p { margin: 0; }
+#a { display: grid; width: 27em; max-width: 100%; }
+#a > * { grid-area: 1/1; transition: opacity .8s, visibility .8s; }
+#s, #w, #q, #z, #k, #h { font-size: .8em; letter-spacing: .12em; text-transform: uppercase; }
+#w { margin-top: 1.2em; color: #ffd98a; text-wrap: balance; }
+#p {
+  height: .5em; margin: .4em 0 1em; overflow: hidden; border-radius: 1em; background: #0a1a2e;
+  box-shadow: 0 0 0 2px #ffd98a80, 0 0 1.5em #ff9d5c80;
+}
+#b {
+  display: block; height: 100%; background: linear-gradient(90deg, #ff9d5c, #ffe9b8);
+  transform: scaleX(0); transform-origin: 0; will-change: transform;
+}
+.e #p { visibility: hidden; }
+.e #s { font-size: 1.1em; letter-spacing: 0; text-transform: none; }
+button {
+  display: flex; align-items: center; justify-content: center; gap: .6em; padding: .8em 1.4em; border: 0;
+  border-radius: .5em; background: #fff; box-shadow: inset 0 -.2em #0003, 0 .3em 1em #0009;
+  font: 800 1em/1.2 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase;
+  color: #10243a; cursor: pointer; transition: transform .12s, filter .12s;
+}
+button:hover { transform: translateY(-.12em); filter: brightness(1.1); }
+button:active { transform: translateY(.1em); filter: brightness(.9); }
+:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+#g { display: grid; gap: min(1.1em, 3vmin); }
+#d {
+  padding: .9em; background: linear-gradient(#ffe9b8, #ffab5e); font-size: 1.3em;
+  box-shadow: inset 0 -.2em #0003, 0 0 2em #ff9d5cb3;
+}
+/* dark plates under the fly button: planet size, detail level, list of controls */
+#q, #z, #k, #h { padding: 1em 1.6em; border-radius: .7em; background: #0a1a2eb3; }
+#q, #z { display: flex; align-items: center; gap: .4em; padding: .4em; }
+#q span, #z span { flex: 1; color: #ffd98a; }
+#q button { flex: 1.2; padding: .7em 0; background: none; box-shadow: none; color: #fff8ea; }
+#q button:hover { background: #ffd98a33; }
+#q .on { background: linear-gradient(#ffe9b8, #ffab5e); box-shadow: inset 0 -.2em #0003; color: #10243a; pointer-events: none; }
+#z input { flex: 2.2; accent-color: #ffab5e; }
+#z b { flex: 1; text-align: right; padding-right: .6em; }
+#k { display: flex; justify-content: center; gap: 2em; text-align: left; }
+#k p { display: grid; grid-template-columns: auto auto; align-content: start; align-items: center; gap: .55em .9em; }
+#k p + p { padding-left: 2em; border-left: 2px solid #ffd98a40; }
+#k i { display: flex; justify-self: end; align-items: center; gap: .25em; font-style: normal; }
+#k b {
+  min-width: 1.1em; padding: .2em .5em; border-radius: .35em; background: #fff8ea;
+  box-shadow: inset 0 -.15em #0004; color: #10243a; text-align: center;
+}
+#h { display: none; }
+@media (pointer: coarse), (max-height: 30em) { #k { display: none; } }
+@media (pointer: coarse) { #h { display: block; } }
+/* in the world: the clock and the pace of time (bottom), the menu button, the stats line */
+#t {
+  position: absolute; left: 50%; bottom: 1.2em; transform: translateX(-50%); display: none; align-items: center; gap: .3em;
+  padding: .3em; border-radius: 2em; background: #0a1a2e99; font-size: .85em; letter-spacing: .08em;
+  text-shadow: 0 1px 3px #000; transition: opacity .6s;
+}
+.g #t { display: flex; }
+.p #t { opacity: .55; }
+#t button { width: 2.2em; height: 2.2em; padding: 0; border-radius: 50%; background: #fff8ea26; box-shadow: none; color: #fff8ea; font-size: .9em; }
+#t button:hover { background: #fff8ea4d; }
+#t span { min-width: 7.5em; text-align: center; }
+#o {
+  position: absolute; top: .6em; right: .6em; display: none; padding: .3em .6em; background: #10243ad9;
+  box-shadow: inset 0 0 0 2px #ffd98a, 0 .3em 1em #0009; font-size: 1.3em; color: #fff8ea; opacity: .8;
+}
+.g #o { display: flex; }
+.p #o { display: none; }
+#i {
+  position: absolute; top: 1em; left: 1.2em; margin: 0; font: .8em/1.6 ui-monospace, Consolas, monospace;
+  white-space: pre-wrap; text-shadow: 0 1px 4px #000; pointer-events: none;
+}
+</style>
+</head>
+<body class=l>
+<canvas id=c></canvas>
+<div id=m>
+  <h1>Paradise Planet</h1>
+  <div id=a>
+    <div id=l><div id=p><i id=b></i></div><p id=s>Forming the planet…</p><p id=w hidden>Use Google Chrome for the best experience</p></div>
+    <div id=g>
+      <button id=d>Fly</button>
+      <p id=z><span>Planet</span><input id=r type=range min=10 max=50 step=1 value=30><b id=y>30 km</b></p>
+      <p id=q><span>Detail</span><button>Low</button><button>Medium</button><button>High</button></p>
+      <div id=k>
+        <p>
+          <i><b>W</b><b>A</b><b>S</b><b>D</b></i>Fly
+          <i><b>Q</b><b>E</b></i>Down / up
+          <i><b>Shift</b></i>Faster
+          <i><b>1</b>–<b>8</b></i>Viewpoints
+        </p>
+        <p>
+          <i><b>T</b><b>G</b></i>Time faster / slower
+          <i><b>P</b></i>Pause time
+          <i><b>Esc</b></i>Menu
+          <i><b>H</b></i>Stats
+        </p>
+      </div>
+      <p id=h>Hold to fly forward · slide to steer · second finger to go faster</p>
+    </div>
+  </div>
+</div>
+<div id=t><button id=tg aria-label=Slower>«</button><span id=tc>12:00</span><button id=tt aria-label=Faster>»</button></div>
+<button id=o aria-label=Menu>≡</button>
+<pre id=i></pre>
+<script>
+/*SCRIPT*/
+</script>
+</body>
+</html>

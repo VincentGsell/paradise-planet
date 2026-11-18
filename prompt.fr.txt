@@ -1,0 +1,75 @@
+Construis une petite planète en temps réel qui tourne dans le navigateur : un monde vivant
+qu'on survole, de l'orbite jusqu'à l'herbe. Les prairies respirent dans le vent, des
+oiseaux traversent le ciel, les nuages passent et leurs ombres courent sur les collines, le
+soleil traverse la journée ; et sous les vagues, la vie continue. Il suffit que ce soit beau
+et que je puisse voler librement tout autour.
+
+PRIORITÉS (dans cet ordre en cas de conflit)
+1. La qualité visuelle autour de la caméra
+2. Une cadence d'images stable sur la configuration cible
+3. Un fichier léger
+Le temps de chargement n'est pas une priorité : la planète peut se construire pendant que
+je vole, tant que ce qui entoure la caméra est détaillé et stable.
+
+CONTRAINTES
+- Pas de Three.js/Babylon.js ni d'autre moteur. Rendu en WebGPU.
+- Tout procédural : aucun fichier de texture, de modèle ou de son. Le livrable est un seul
+  index.html autonome, qui marche d'un double-clic et depuis GitHub Pages. Donner sa
+  taille minifiée.
+- Aucune allocation JS par image (pas d'à-coups du ramasse-miettes). Tous les tampons
+  alloués d'avance.
+- Ni tremblement ni z-fighting, de l'orbite jusqu'à 1 m au-dessus de l'herbe (double
+  précision côté CPU, rendu relatif à la caméra, Z inversé).
+- La technologie des planètes vient de mon moteur OpenG (Rust + WGSL) : porter le minimum
+  qui fait vivre une planète, pas une version web d'OpenG.
+
+CIBLE
+- Windows 11 25H2, Chrome 157, RTX 5070 Ti, 2560×1440 en pleine résolution :
+  temps GPU ≤ 11 ms en moyenne, aucune image > 16,7 ms pendant un vol scripté de 60 s.
+- RTX 5070, 3840×2160 à 60 Hz : 60 images/s verrouillées sur les trois niveaux de détail
+  (résolution dynamique permise).
+
+LA PLANÈTE
+- Diamètre choisi dans le menu de départ, de 10 à 50 km
+- Relief multi-octave en crêtes sur une cube-sphère, LOD en quadtree avec morphing, sans
+  couture
+- Une mer aux vagues FFT, de l'écume au rivage, et une vraie vue par en dessous (fenêtre de
+  Snell, absorption)
+- Une atmosphère physique du sol à l'orbite, des étoiles la nuit
+- Des nuages volumétriques qui dérivent avec le vent (sans météo), leurs ombres sur la
+  terre et la mer
+- Un soleil avec un cycle jour/nuit, et une petite commande pour ralentir, accélérer ou
+  arrêter le temps
+- Des rayons de lumière (god rays), surtout au coucher du soleil
+
+DEUX BIOMES, choisis par l'altitude, la pente et la profondeur
+- Au-dessus de l'eau, le cœur du monde : plages, prairies de hautes herbes qui ploient au
+  vent, arbres, buissons, fleurs et rochers ; oiseaux, rapaces qui planent, papillons,
+  pollen dans les rayons du soleil, lucioles au crépuscule ; des rayons de lumière à
+  travers les nuages
+- Sous l'eau, de 20 à 50 m de fond, tant que la lumière arrive : un jardin de kelp, de
+  coraux et de poissons. Plus bas, tout se fond dans le noir.
+- La végétation naît autour de la caméra depuis un réseau ancré à la planète : la même
+  plante au même endroit, quel que soit le niveau de détail.
+
+COMMANDES
+WASD pour se déplacer (touches physiques, donc ZQSD en AZERTY), souris pour regarder
+(pointeur capturé), Q/E pour descendre/monter, Maj pour accélérer. Le vol est celui
+d'OpenG : près du sol, l'horizon se remet à plat de lui-même.
+Interface minimale : menu de départ (taille de la planète, Low/Medium/High), commande du
+temps, menu sur Échap, H pour les statistiques.
+
+VÉRIFICATION
+- Critique visuel : un sous-agent séparé qui ne voit QUE tes rendus, jamais ton code ni
+  ton raisonnement. Lui donner 8 poses de caméra fixes (orbite, haute altitude, couche de
+  nuages, plage, prairie à hauteur d'œil, lisière de forêt, récif peu profond, jardin à
+  40 m), rendues en 2560×1440 dans Chrome avec accélération GPU, plus l'enregistrement
+  d'un vol de l'orbite jusqu'au fond marin pour repérer scintillement, crénelage,
+  apparitions brusques, coutures et effets de bandes. Il rend des défauts concrets, par
+  ordre de priorité. Itérer jusqu'à ce qu'il ne signale plus rien au-dessus de « mineur ».
+- Performance : requêtes d'horodatage GPU plus un relevé des temps d'image sur un vol
+  scripté de 60 s (orbite → prairie → plongée). Donner la moyenne, le 99e centile et le
+  maximum.
+
+C'EST FINI QUAND : les deux vérifications passent. Livrer index.html, sa taille, le
+rapport de perf et la dernière revue du critique.

@@ -1,0 +1,64 @@
+Build a real-time tiny planet that runs in the browser: a living world you can fly
+around, from orbit down to the grass. Meadows breathe in the wind, birds cross the sky,
+clouds drift by and their shadows run over the hills, the sun crosses the day; and under
+the waves, life goes on. It only needs to look beautiful and let me fly freely around it.
+
+PRIORITIES (in this order when they conflict)
+1. Visual quality around the camera
+2. Stable frame pacing at the target spec
+3. Small bundle size
+Load time is not a priority: the planet may build itself while I fly, as long as what
+surrounds the camera is detailed and stable.
+
+CONSTRAINTS
+- No Three.js/Babylon.js or other engines. WebGPU rendered.
+- Everything procedural: no texture/model/sound files. Deliverable is a single
+  self-contained index.html that runs from a double-click and from GitHub Pages.
+  Report minified size.
+- Zero per-frame JS allocations (no GC stutter). Preallocate all buffers.
+- No jitter or z-fighting from orbit to 1 m above the grass (double precision on the CPU,
+  camera-relative rendering, reversed-Z).
+- The planet technology comes from my engine OpenG (Rust + WGSL): port the minimum that
+  makes a planet live, not a web version of OpenG.
+
+TARGET
+- Windows 11 25H2, Chrome 157, RTX 5070 Ti, 2560×1440 at full resolution:
+  GPU frame time ≤ 11 ms average, no frame > 16.7 ms during a scripted 60 s fly-through.
+- RTX 5070, 3840×2160 at 60 Hz: locked 60 fps on all three detail levels
+  (dynamic resolution allowed).
+
+PLANET
+- Diameter chosen in the start menu, from 10 to 50 km
+- Ridged multi-octave relief on a cube-sphere, quadtree LOD with geomorphing, no seams
+- A sea with FFT waves, shore foam, and a real view from below (Snell window, absorption)
+- Physically based atmosphere from the ground to orbit, stars at night
+- Volumetric clouds drifting with the wind (no weather), their shadows on land and sea
+- A sun with a day/night cycle, and a small control to slow down, speed up or pause time
+- God rays, above all at sunset
+
+TWO BIOMES, chosen by altitude, slope and depth
+- Above the water, the heart of the world: beaches, meadows of tall grass bending in the
+  wind, trees, bushes, flowers and rocks; birds, gliding raptors, butterflies, pollen in
+  the sunbeams, fireflies at dusk; light shafts through the clouds
+- Under the water, from 20 to 50 m deep, as long as light reaches: a garden of kelp,
+  coral and fish. Deeper, it fades to dark.
+- Vegetation streams around the camera from a lattice anchored to the planet: the same
+  plant in the same place, whatever the level of detail.
+
+CONTROLS
+WASD move (physical keys, so ZQSD on AZERTY), mouse look (pointer lock), Q/E down/up,
+Shift to accelerate. Flight as in OpenG: the horizon levels itself near the ground.
+Minimal UI: start menu (planet size, Low/Medium/High), time control, Esc menu, H stats.
+
+VERIFICATION
+- Visual critic: a separate subagent that sees ONLY your renders, never your code or
+  reasoning. Give it 8 fixed camera poses (orbit, high altitude, cloud layer, beach,
+  meadow at eye level, forest edge, shallow reef, garden at 40 m), rendered at
+  2560×1440 in GPU-accelerated Chrome, plus a recording of a flight from orbit to the
+  seabed to catch shimmer, aliasing, popping, seams and banding. It returns prioritized,
+  concrete defects. Iterate until it reports nothing above "minor".
+- Performance: GPU timestamp queries plus a frame-time log from a scripted 60 s flight
+  (orbit → meadow → dive). Report average, 99th percentile and max.
+
+DONE WHEN: both verification gates pass. Deliver index.html, the bundle size, the perf
+report and the critic's final review.
