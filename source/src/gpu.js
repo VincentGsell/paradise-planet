@@ -45,13 +45,13 @@ const VF = SS.VERTEX | SS.FRAGMENT, VFC = VF | SS.COMPUTE;
 // ---------------------------------------------------------------- shared resources: group 0 of every pass
 const sLin = device.createSampler({ magFilter: 'linear', minFilter: 'linear', addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge' });
 const sRep = device.createSampler({ addressModeU: 'repeat', addressModeV: 'repeat', magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear', maxAnisotropy: LV > 1 ? 1 : 8 });
-const FU = new Float32Array(80), uFrame = ubuf(320);
+const FU = new Float32Array(88), uFrame = ubuf(352);
 const AU = new Float32Array(28), uAtmo = ubuf(112);
 const bPerm = buf(PERM, BU.STORAGE);
 const LUTU = TU.STORAGE_BINDING | TU.TEXTURE_BINDING;
 const tTrans = tex(TLUT[0], TLUT[1], HDR, LUTU), tMulti = tex(MLUT[0], MLUT[1], HDR, LUTU), tIrr = tex(ELUT[0], ELUT[1], HDR, LUTU), tSkyV = tex(SLUT[0], SLUT[1], HDR, LUTU);
 const tBlack = tex(1, 1, HDR, TU.TEXTURE_BINDING | TU.RENDER_ATTACHMENT);
-let tCloudSh = tex(1, 1, 'rg16float', TU.TEXTURE_BINDING);
+let tCloudSh = tex(1, 1, HDR, TU.TEXTURE_BINDING);
 const bgl0 = device.createBindGroupLayout({ entries: [
   { binding: 0, visibility: VFC, buffer: {} }, { binding: 1, visibility: VFC, buffer: { type: 'read-only-storage' } },
   { binding: 2, visibility: VFC, buffer: {} }, { binding: 3, visibility: VFC, sampler: {} },

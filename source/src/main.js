@@ -53,7 +53,9 @@ function resize() {
   passScene = { colorAttachments: [{ view: AA > 1 ? tMS.createView() : vScene, resolveTarget: AA > 1 ? vScene : undefined, loadOp: 'clear', storeOp: AA > 1 ? 'discard' : 'store', clearValue: [0, 0, 0, 1] }],
     depthStencilAttachment: { view: vDp, depthClearValue: 0, depthLoadOp: 'clear', depthStoreOp: 'store' } };
   passComp = { colorAttachments: [colorAtt(vComp, true)] };
-  bgComp = device.createBindGroup({ layout: bglComp, entries: [{ binding: 0, resource: vScene }, { binding: 1, resource: vDp }, { binding: 2, resource: { buffer: uStars } }] });
+  cloudTargets(W, H, vDp);
+  bgComp = [0, 1].map((i) => device.createBindGroup({ layout: bglComp, entries: [{ binding: 0, resource: vScene }, { binding: 1, resource: vDp }, { binding: 2, resource: { buffer: uStars } },
+    { binding: 3, resource: cHist[i][0].createView() }, { binding: 4, resource: cHist[i][1].createView() }] }));
   passPost = { colorAttachments: [{ view: null, loadOp: 'clear', storeOp: 'store', clearValue: [0, 0, 0, 1] }] };
   bgPost = device.createBindGroup({ layout: bglPost, entries: [{ binding: 0, resource: vComp }, { binding: 1, resource: vBl[0] }, { binding: 2, resource: sLin },
     { binding: 3, resource: tBlack.createView() }, { binding: 4, resource: { buffer: bExpo } }] });
@@ -149,7 +151,7 @@ const POSES = [];
   };
   const pose = (a, b, hour) => POSES.push([...a, ...b, hour]);
   pose(at(0, 0, 0, R * 2.6), at(0, 0, 0, 0), 9.5);                         // 1 orbit
-  pose(at(-1800, -2600, 0, 1400), at(200, 600, 0, 0), 17.6);                // 2 high altitude over the coast
+  pose(at(-2600, -3800, 0, CBASE + CTHICK + 900), at(300, 900, 0, 0), 16.9);  // 2 high altitude, above the clouds
   pose(at(-600, -900, 0, 520), at(800, 900, 0, 380), 16.8);                 // 3 the cloud layer
   pose(at(-40, -20, 1.7), at(60, 140, 0, 0), 18.6);                         // 4 the beach, sunset
   pose(at(30, -260, 1.6), at(160, -500, 8), 10.5);                          // 5 meadow at eye level
@@ -207,13 +209,14 @@ function render() {
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();
   lastDraw = lodUpdate(e, BUILDS);
-  oceanFrame(); waves(e);
+  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e);
   let r = e.beginRenderPass(passScene);
   r.setBindGroup(0, bg0); r.setBindGroup(2, bgOcean);
   r.setPipeline(pTerrain); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, lastDraw);
   r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.drawIndexed(NIDX, nWater);
   r.end();
-  r = e.beginRenderPass(passComp); r.setPipeline(pComp); r.setBindGroup(0, bg0); r.setBindGroup(1, bgComp); r.setBindGroup(2, bgOcean); r.draw(3); r.end();
+  cloudMarch(e);
+  r = e.beginRenderPass(passComp); r.setPipeline(pComp); r.setBindGroup(0, bg0); r.setBindGroup(1, bgComp[cPing]); r.setBindGroup(2, bgOcean); r.draw(3); r.end();
   for (let i = 0; i < bloomPass.length; i++) {
     r = e.beginRenderPass(bloomPass[i]); r.setPipeline(i === 0 ? pDown0 : i < NB ? pDown : pUp); r.setBindGroup(0, bloomBG[i]); r.draw(3); r.end();
     if (i === NB - 1) { const x = e.beginComputePass(); x.setPipeline(pExpo); x.setBindGroup(0, bg0); x.setBindGroup(1, bgExpo); x.dispatchWorkgroups(1); x.end(); }

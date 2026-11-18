@@ -84,7 +84,8 @@ const bgWater = device.createBindGroup({ layout: bglWater, entries: [{ binding: 
 // the composite: its group 1 holds the resolved scene, the depth and the star uniform
 const mComp = mod(W_FRAME + W_NOISE + W_ATMO + W_LIGHT + W_WATER + W_UNDERWATER + W_COMPOSITE.replace('texture_depth_multisampled_2d', AA > 1 ? 'texture_depth_multisampled_2d' : 'texture_depth_2d'));
 const bglComp = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: { sampleType: 'unfilterable-float' } },
-  { binding: 1, visibility: SS.FRAGMENT, texture: { sampleType: 'depth', multisampled: AA > 1 } }, { binding: 2, visibility: SS.FRAGMENT, buffer: {} }] });
+  { binding: 1, visibility: SS.FRAGMENT, texture: { sampleType: 'depth', multisampled: AA > 1 } }, { binding: 2, visibility: SS.FRAGMENT, buffer: {} },
+  { binding: 3, visibility: SS.FRAGMENT, texture: {} }, { binding: 4, visibility: SS.FRAGMENT, texture: {} }] });
 const pComp = device.createRenderPipeline({ layout: lay(bgl0, bglComp, bglOcean), vertex: { module: mComp, entryPoint: 'vs' }, fragment: { module: mComp, entryPoint: 'fs', targets: [{ format: HDR }] } });
 // the camera in the wave plane, accumulated from its motion (f64): the waves stay put as it flies
 const WPOS = new Float64Array(2), WLAST = new Float64Array(3), WAX = new Float64Array(6);

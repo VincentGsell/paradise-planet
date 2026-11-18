@@ -19,6 +19,8 @@ struct Frame {
   norg: array<vec4f, 4>, // origins of the detail noise octaves (camera / scale, modulo the period)
   sunc: vec4f,    // sun radiance at the camera (rgb), w: sun disc visibility
   wind: vec4f,    // xyz: wind direction (body frame, tangent at the camera), w: strength
+  csx: vec4f,     // cloud shadow map: sun-space x axis, w: 1 / half extent (m)
+  csy: vec4f,     // sun-space y axis
 };
 @group(0) @binding(0) var<uniform> F: Frame;
 @group(0) @binding(1) var<storage, read> PERM: array<u32, 512>;

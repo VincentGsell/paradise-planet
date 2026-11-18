@@ -296,6 +296,8 @@ fn starField(rdw: vec3f, px: f32, sky: f32) -> vec3f {
 }
 struct Stars { rot: vec4f };
 @group(1) @binding(2) var<uniform> S: Stars;
+@group(1) @binding(3) var cloC: texture_2d<f32>;
+@group(1) @binding(4) var cloT: texture_2d<f32>;
 @fragment fn fs(@builtin(position) fc: vec4f) -> @location(0) vec4f {
   let px = vec2i(fc.xy);
   let base = textureLoad(cIn, px, 0);
@@ -359,6 +361,14 @@ struct Stars { rot: vec4f };
     }
     col = base.rgb * tr + lum + disc * A.sunI.xyz * tr;
     if (tg < 0.0) { col += starField(rd, F.misc.x, dot(lum, vec3f(0.2126, 0.7152, 0.0722))) * tr; }
+  }
+  // the clouds in front (OpenG): out = C Tc + T(0, tc) Lc + (1 - Tc) S(0, tc)
+  let cuv = fc.xy * F.scr.zw;
+  let cc = textureSampleLevel(cloC, sLin, cuv, 0.0);
+  if (cc.a < 0.999) {
+    let tc = max(textureSampleLevel(cloT, sLin, cuv, 0.0).x * 0.001 - st, 0.0);
+    let s2 = integrate(sr, sh, smu, smus, nu, 0.0, tc, 8u, false);
+    col = col * cc.a + s2.tr * cc.rgb + (1.0 - cc.a) * s2.lum * A.sunI.xyz;
   }
   return vec4f(col, 1.0);
 }
