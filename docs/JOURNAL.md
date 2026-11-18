@@ -29,8 +29,9 @@
 1. **Relief** : λ0 = 1,2 R et A0 = 0,028 R (OpenG calibre 1 800 m pour 50 km de rayon ; à 5 % du rayon, une petite
    planète faisait des aiguilles). Mer à 58 % de la surface. Un plateau continental de 20 à 55 m (le jardin y vit) et
    des plaines côtières basses (plages).
-2. **Atmosphère** : hauteur d'échelle de Rayleigh = 5 % du rayon, épaisseur optique verticale de la Terre conservée
-   (`scaled_with` d'OpenG), un peu plus de diffusion (×1,35) pour des couchers plus chauds.
+2. **Atmosphère** : hauteur d'échelle de Rayleigh = 4,5 % du rayon, épaisseur optique verticale de la Terre conservée
+   (`scaled_with` d'OpenG), un peu plus de diffusion (×1,5) pour des couchers plus chauds ; plus un étalonnage
+   « heure dorée » en post quand le soleil est bas (la petite planète a trop peu d'air à l'horizon pour rougir seule).
 3. **Nuages** : base à 4,2 % du rayon (380 à 950 m), épaisseur 7,5 % (520 à 1 500 m), cumulus de beau temps.
 4. **Eau** : une mer tropicale idéalisée, très claire et cyan en profondeur (absorption verte 0,024 /m), pour que le
    jardin à 40 m reste lumineux. Sous l'eau, l'œil s'adapte complètement.
