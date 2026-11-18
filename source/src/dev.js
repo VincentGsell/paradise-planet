@@ -17,6 +17,17 @@ if (URLQ.has('shot')) {
   if (URLQ.get('hour')) setHour(+URLQ.get('hour'));
   // ?nudge=m: move the camera forward (tests)
   if (URLQ.get('nudge')) { const m = +URLQ.get('nudge'); for (let c = 0; c < 3; c++) CP[c] += CB[c] * m; }
+  // ?cam=alt,pitch,yaw: the camera `alt` m above the ground, `pitch` degrees above the horizon, `yaw` degrees from
+  // the sun's azimuth (tests: the clouds seen from below, toward the sun)
+  if (URLQ.get('cam')) {
+    const [alt, pitch, yaw] = URLQ.get('cam').split(',').map(Number), r0 = v3len(CP, 0), ux = CP[0] / r0, uy = CP[1] / r0, uz = CP[2] / r0;
+    const g = max(groundAt(CP[0], CP[1], CP[2]), 0), r = R + g + alt; CP[0] = ux * r; CP[1] = uy * r; CP[2] = uz * r;
+    let sx = FU[32] || cos(DECL) * cos(sunPhi), sy = FU[33] || sin(DECL), sz = FU[34] || cos(DECL) * sin(sunPhi);
+    const k = sx * ux + sy * uy + sz * uz; sx -= ux * k; sy -= uy * k; sz -= uz * k; const l = hypot(sx, sy, sz); sx /= l; sy /= l; sz /= l;
+    const T = new Float64Array([sx, sy, sz]), Uv = new Float64Array([ux, uy, uz]); v3rot(T, 0, Uv, 0, yaw * PI / 180);
+    const cp = cos(pitch * PI / 180), sp = sin(pitch * PI / 180);
+    lookAt(CP[0], CP[1], CP[2], CP[0] + (T[0] * cp + ux * sp) * 100, CP[1] + (T[1] * cp + uy * sp) * 100, CP[2] + (T[2] * cp + uz * sp) * 100);
+  }
 }
 // ?prof: a GPU timestamp pair around every pass, summed per call site (function:line), in window.PROF (ms)
 if (URLQ.has('prof') && hasTS) {

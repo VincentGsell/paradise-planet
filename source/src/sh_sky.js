@@ -334,7 +334,7 @@ struct Stars { rot: vec4f };
     return vec4f(base.rgb + add, 1.0);
   }
   let tExit = distTop(sr, sh, smu); let tg = distGround(sr, sh, smu);
-  var col: vec3f;
+  var col: vec3f; var stars = vec3f(0.0);
   if (!sky) {
     // depth = near / (forward distance)
     let tGeo = F.fwd.w / depth / max(dot(rd, F.fwd.xyz), 1e-6) * 0.001 - st;
@@ -362,7 +362,7 @@ struct Stars { rot: vec4f };
       lum = s.lum * A.sunI.xyz; if (tg < 0.0) { tr = s.tr; }
     }
     col = base.rgb * tr + lum + disc * A.sunI.xyz * tr;
-    if (tg < 0.0) { col += starField(rd, F.misc.x, dot(lum, vec3f(0.2126, 0.7152, 0.0722))) * tr; }
+    if (tg < 0.0) { stars = starField(rd, F.misc.x, dot(lum, vec3f(0.2126, 0.7152, 0.0722))) * tr; }
   }
   // the clouds in front (OpenG): out = C Tc + T(0, tc) Lc + (1 - Tc) S(0, tc)
   let cuv = fc.xy * F.scr.zw;
@@ -372,6 +372,8 @@ struct Stars { rot: vec4f };
     let s2 = integrate(sr, sh, smu, smus, nu, 0.0, tc, 8u, false);
     col = col * cc.a + s2.tr * cc.rgb + (1.0 - cc.a) * s2.lum * A.sunI.xyz;
   }
+  // even a thin veil of cloud hides the stars (their light is far brighter than the cloud's at the top of a dark sky)
+  col += stars * pow(cc.a, 12.0);
   return vec4f(col, 1.0);
 }
 `;

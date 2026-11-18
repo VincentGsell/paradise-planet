@@ -4,7 +4,7 @@
 // Fair-weather cumulus. The layer follows the planet's size within bounds: a 10 km world keeps clouds you can fly
 // over, a 50 km one gets taller ones.
 const CK = clamp(R / 15000, 0.6, 1.3);
-let CLOUDBIAS = URLQ.has('clear') ? -0.6 : -0.11; // ?clear: no clouds (tests)
+let CLOUDBIAS = URLQ.has('clear') ? -0.6 : -0.09; // ?clear: no clouds (tests)
 const CBASE = clamp(0.042 * R, 380, 950), CTHICK = clamp(0.075 * R, 520, 1500);
 const CSTEPS = [96, 64, 40][LV], CSHN = [1024, 768, 512][LV];
 const tCShape = device.createTexture({ size: [128, 128, 128], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 4, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
@@ -83,8 +83,8 @@ function cloudFrame() {
   const c = CU, ang = ftime * 9 / (R + CBASE); // 9 m/s of wind at the base of the layer
   // rotation matrix rows around WAXIS by -ang (body -> field)
   const x = WAXIS[0], y = WAXIS[1], z = WAXIS[2], cs = cos(-ang), sn = sin(-ang), t = 1 - cs;
-  c[4] = t * x * x + cs; c[5] = t * x * y - sn * z; c[6] = t * x * z + sn * y; c[7] = 2400 * CK;
-  c[8] = t * x * y + sn * z; c[9] = t * y * y + cs; c[10] = t * y * z - sn * x; c[11] = 280 * CK;
+  c[4] = t * x * x + cs; c[5] = t * x * y - sn * z; c[6] = t * x * z + sn * y; c[7] = 1200 * CK;
+  c[8] = t * x * y + sn * z; c[9] = t * y * y + cs; c[10] = t * y * z - sn * x; c[11] = 190 * CK;
   c[12] = t * x * z - sn * y; c[13] = t * y * z + sn * x; c[14] = t * z * z + cs; c[15] = CSTEPS;
   c[0] = CBASE; c[1] = CTHICK; c[2] = 0.045; c[3] = CLOUDBIAS;
   if (cFirst) { PVP.set(FU.subarray(0, 16)); PCAM.set(CP); cFirst = false; }

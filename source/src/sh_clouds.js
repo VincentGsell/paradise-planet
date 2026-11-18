@@ -147,11 +147,15 @@ fn cloudAt(p: vec3f, foot: f32, shapeOnly: bool, mipBias: f32) -> CS {
   if (h <= 0.0 || h >= C.layer.y) { return s; }
   let hf = h / C.layer.y; s.hf = hf;
   let q = windRot(p);
-  let cov = coverage(q);
+  // the coverage is read through a warp that changes with height (a coarse mip of the shape noise, plus a little
+  // shear): the clouds lean and bulge instead of rising as vertical columns from the same outline
+  let wn = textureSampleLevel(tShape, sRep, q / (C.rot0.w * 1.7) + vec3f(0.0, hf * 0.37, 0.0), 4.0 + mipBias).gba - 0.5;
+  let cov = coverage(q + (wn * 1.25 + vec3f(0.18, 0.0, 0.11) * hf) * C.rot0.w * 0.42);
   if (cov <= 0.01) { return s; }
-  // cumulus profile: a flat base, rounded tops, taller where the coverage is high
-  let top = 0.45 + 0.55 * cov;
-  let prof = sat(hf / 0.07) * sat((top - hf) / (0.35 * top));
+  // cumulus profile: a base that is not quite flat, tops rounded and narrowing, taller where the coverage is high
+  let top = 0.4 + 0.6 * cov * (1.0 + 0.6 * wn.x);
+  let hb = hf - 0.05 * (wn.y + 0.5);
+  let prof = smoothstep(0.0, 0.16, hb) * (1.0 - smoothstep(top * 0.4, top, hf));
   if (prof <= 0.0) { return s; }
   let ks = smoothstep(0.06, 0.25, foot / C.rot0.w);
   var d = 0.0;
@@ -159,19 +163,22 @@ fn cloudAt(p: vec3f, foot: f32, shapeOnly: bool, mipBias: f32) -> CS {
     let n = textureSampleLevel(tShape, sRep, q / C.rot0.w, log2(1.0 + foot / (C.rot0.w / 128.0)) + mipBias);
     let wf = n.g * 0.625 + n.b * 0.25 + n.a * 0.125;
     let sh = sat(remap(n.r, wf - 1.0, 1.0, 0.0, 1.0));
-    d = sat(remap(sh * prof, 1.0 - cov, 1.0, 0.0, 1.0));
+    // the billows: the shape noise cuts the outline (more near the edges, where the coverage is low)
+    d = sat(remap(sh * prof, 1.0 - cov * 0.92, 1.0, 0.0, 1.0));
+    d = sat(remap(d, (1.0 - sh) * 0.35 * (1.0 - cov * 0.5), 1.0, 0.0, 1.0));
     if (!shapeOnly && d > 0.0) {
       let kd = 1.0 - smoothstep(0.25, 1.0, foot / C.rot1.w);
       if (kd > 0.0) {
         let dn = textureSampleLevel(tDetail, sRep, q / C.rot1.w + (n.gba - 0.5) * 0.35, log2(1.0 + foot / (C.rot1.w / 32.0))).rgb;
         let df = dn.r * 0.625 + dn.g * 0.25 + dn.b * 0.125;
         let dm = mix(0.5, mix(df, 1.0 - df, sat(hf * 3.0)), kd);
-        d = sat(remap(d, dm * 0.38, 1.0, 0.0, 1.0));
+        d = sat(remap(d, dm * 0.5, 1.0, 0.0, 1.0));
       }
     }
   }
   if (ks > 0.0) { d = mix(d, prof * smoothstep(0.3, 0.9, cov) * 0.45, ks); }
-  s.d = d;
+  // a cumulus has a crisp outline: the density rises fast at the edge, the core barely changes
+  s.d = sqrt(d) * smoothstep(0.0, 0.05, d);
   return s;
 }
 fn hg(g: f32, c: f32) -> f32 { let g2 = g * g; return (1.0 - g2) / (4.0 * PI * pow(max(1.0 + g2 - 2.0 * g * c, 1e-5), 1.5)); }
@@ -216,8 +223,8 @@ fn ign(p: vec2f, f: f32) -> f32 { let q = p + 5.588238 * f; return fract(52.9829
   let n = C.rot2.w;
   // fine steps inside the clouds (never more than 180 m: no terraces on the tops seen at grazing angles), big
   // ones through the clear air, with a step back on entering a cloud
-  let ds0 = clamp((t1 - t0) / n, 20.0, 180.0);
-  let jit = ign(fc.xy, C.dcam.w);
+  let ds0 = clamp((t1 - t0) / n, 20.0, 150.0);
+  let jit = 0.08 + 0.84 * ign(fc.xy, C.dcam.w);
   var t = t0 + ds0 * jit;
   var coarse = false;
   var T = 1.0; var L = vec3f(0.0); var tw = 0.0; var wsum = 0.0;
@@ -226,12 +233,15 @@ fn ign(p: vec2f, f: f32) -> f32 { let q = p + 5.588238 * f; return fract(52.9829
   for (var i = 0; i < 3; i++) { ph[i] = cPhase(ct, k); k *= 0.5; }
   let sig = C.layer.z;
   var ds = ds0;
-  for (var i = 0; i < 220; i++) {
+  for (var i = 0; i < 320; i++) {
     if (t >= t1 || T < 0.01) { break; }
     let p = cam + rd * t;
     let foot = t * F.misc.x * 2.0;
     let s = cloudAt(p, foot, false, 0.0);
-    if (s.d > 0.0 && coarse) { t -= ds * (1.0 - jit * 0.5); ds = ds0; coarse = false; continue; }
+    // inside a cloud: steps that grow with distance (fine near the camera, where the slices would show)
+    // (longer in thin wisps, and longer as the step budget runs out: a ray never stops short of a cloud)
+    let dsIn = clamp(t * 0.008, 10.0, ds0) * (1.0 + f32(i) / 160.0);
+    if (s.d > 0.0 && coarse) { t -= ds * (1.0 - jit * 0.5); ds = dsIn; coarse = false; continue; }
     if (s.d > 0.0) {
       let up = normalize(p); let hm = length(p) - F.pl.x;
       let od = lightOD(p, foot, ign(fc.xy + 7.0, C.dcam.w));
@@ -245,8 +255,8 @@ fn ign(p: vec2f, f: f32) -> f32 { let q = p + 5.588238 * f; return fract(52.9829
       L += T * (sunL + amb) * (1.0 - tr);
       tw += T * (1.0 - tr) * t; wsum += T * (1.0 - tr);
       T *= tr;
-      ds = ds0;
-    } else { ds = min(ds * 1.4, ds0 * 5.0); coarse = ds > ds0 * 1.5; }
+      ds = dsIn * mix(2.5, 1.0, sat(s.d * 5.0));
+    } else { ds = min(max(ds, dsIn) * 1.3, ds0 * 3.0); coarse = ds > ds0 * 1.2; }
     t += ds;
   }
   o.c = vec4f(L, T);
@@ -328,7 +338,10 @@ const CUP = array<vec3f, 6>(vec3f(1, 0, 0), vec3f(-1, 0, 0), vec3f(0, 1, 0), vec
     case 4u: { d = vec3f(uv.x, -uv.y, 1.0); } default: { d = vec3f(-uv.x, -uv.y, -1.0); }
   }
   let p = normalize(d) * (F.pl.x / 3200.0);
-  let c = 0.5 + 0.5 * (snoise(p) * 0.55 + snoise(p * 2.1 + 17.0) * 0.28 + snoise(p * 4.6 + 41.0) * 0.12 + snoise(p * 9.7 + 7.0) * 0.05);
+  // a broad field that groups the clouds (big masses here, small scattered ones there, clear sky between), then
+  // the fair-weather cells of several sizes
+  let g = snoise(p * 0.37 + 5.0);
+  let c = 0.5 + 0.5 * (g * 0.3 + snoise(p) * 0.45 + snoise(p * 2.1 + 17.0) * 0.25 * (0.8 + 0.4 * g) + snoise(p * 4.6 + 41.0) * 0.14 + snoise(p * 9.7 + 7.0) * 0.06);
   textureStore(outC, vec2u(id.xy), id.z, vec4f(c, 0.0, 0.0, 1.0));
 }
 `;
