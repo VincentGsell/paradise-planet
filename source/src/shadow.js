@@ -58,7 +58,7 @@ function shadowMatrices() {
     f[m + 2] = -sx / (2 * zr); f[m + 6] = -sy / (2 * zr); f[m + 10] = -sz / (2 * zr); f[m + 14] = 0.5 + (cx * sx + cy * sy + cz * sz) / (2 * zr);
     f[m + 3] = 0; f[m + 7] = 0; f[m + 11] = 0; f[m + 15] = 1;
   }
-  FU[136] = SHR[0]; FU[137] = SHR[1]; FU[138] = SHR[2]; FU[139] = NCASC;
+  FU[136] = SHR[0]; FU[137] = SHR[1]; FU[138] = SHR[2]; FU[139] = URLQ.has('nosh') ? 0 : NCASC;
 }
 function shadowPasses(e) {
   for (let c = 0; c < NCASC; c++) {

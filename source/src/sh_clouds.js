@@ -12,7 +12,10 @@ const W_CLOUDSH = /*wgsl*/`
 fn cloudShadowMap(rel: vec3f) -> vec2f {
   let p = F.cam.xyz + rel;
   let uv = vec2f(dot(p, F.csx.xyz), -dot(p, F.csy.xyz)) * F.csx.w * 0.5 + 0.5;
-  let s = textureSampleLevel(tCloudSh, sLin, uv, 0.0);
+  // four bilinear taps a texel apart: soft edges, no streaks along the sun
+  let ts = 0.75 / vec2f(textureDimensions(tCloudSh));
+  let s = 0.25 * (textureSampleLevel(tCloudSh, sLin, uv + vec2f(ts.x, ts.y), 0.0) + textureSampleLevel(tCloudSh, sLin, uv + vec2f(-ts.x, ts.y), 0.0)
+    + textureSampleLevel(tCloudSh, sLin, uv + vec2f(ts.x, -ts.y), 0.0) + textureSampleLevel(tCloudSh, sLin, uv - ts, 0.0));
   let along = dot(p, F.sun.xyz);
   let k = 1.0 - clamp((along - s.x) / max(s.y - s.x, 1.0), 0.0, 1.0);
   return vec2f(exp(-s.z * k), mix(1.0, s.w, k));
@@ -301,8 +304,8 @@ const W_CSHADOW = /*wgsl*/`
   let ib = rayShell(p0, l, rB);
   let a0 = max(select(0.0, ib.y, ib.y > 0.0), ot.x); let a1 = ot.y;
   var od = 0.0;
-  let ds = (a1 - a0) / 20.0;
-  for (var i = 0; i < 20; i++) { od += cloudAt(p0 + l * (a0 + (f32(i) + 0.5) * ds), 120.0, true, 1.0).d * ds; }
+  let ds = (a1 - a0) / 36.0;
+  for (var i = 0; i < 36; i++) { od += cloudAt(p0 + l * (a0 + (f32(i) + 0.5) * ds), 200.0, true, 2.0).d * ds; }
   od *= C.layer.z;
   textureStore(outSh, id.xy, vec4f(a0, a1, od, exp(-od * 0.12)));
 }

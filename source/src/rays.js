@@ -34,11 +34,19 @@ fn hg2(c: f32, g: f32) -> f32 { let g2 = g * g; return (1.0 - g2) / (4.0 * PI * 
   if (s < 0.0) { tEnd = min(tEnd, max(F.cam.w - F.pl.x, 0.0) / max(-s, 1e-4)); }
   let n = u32(RY.y);
   let jit = fract(52.9829189 * fract(0.06711056 * fc.x + 0.00583715 * fc.y + 0.618 * RY.z));
-  var L = vec3f(0.0); var T = 1.0; var t0 = 0.0;
+  var L = vec3f(0.0); var T = 1.0;
   let low = 1.0 - smoothstep(0.02, 0.45, mus);
+  // the haze lives in the lowest kilometre: march only through that shell (from high up, every step lands in it)
+  let hz = F.pl.x + 1100.0;
+  var tS = 0.0;
+  let bq = dot(F.cam.xyz, rd); let cq = dot(F.cam.xyz, F.cam.xyz) - hz * hz; let dq = bq * bq - cq;
+  if (cq > 0.0) { if (dq < 0.0 || bq > 0.0) { return vec4f(0.0); } tS = -bq - sqrt(dq); }
+  else { tEnd = min(tEnd, -bq + sqrt(max(dq, 0.0))); }
+  if (tEnd <= tS) { return vec4f(0.0); }
+  var t0 = tS;
   for (var i = 0u; i < n; i++) {
     let u = (f32(i) + jit) / f32(n);
-    let t = tEnd * u * u;
+    let t = tS + (tEnd - tS) * u * u;
     let ds = t - t0; t0 = t;
     let p = rd * t; let b = F.cam.xyz + p; let r = length(b); let h = r - F.pl.x;
     let dens = RY.w * exp(-max(h, 0.0) / mix(260.0, 420.0, low)) * (1.0 + 1.8 * low);
@@ -91,7 +99,7 @@ function rayTargets(W, H, vDp) {
   const div = max(2, round(sqrt(W * H / 1.1e6))), w = max(1, ceil(W / div)), h = max(1, ceil(H / div));
   const a = tex(w, h, HDR, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING), b = tex(w, h, HDR, TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING);
   rTex = [a, b]; vRays = b.createView();
-  RYU[0] = W / w; RYU[1] = RSTEPS; RYU[3] = 0.00028;
+  RYU[0] = W / w; RYU[1] = RSTEPS; RYU[3] = URLQ.has('norays') ? 0 : 0.00028;
   passRays = { colorAttachments: [colorAtt(a.createView(), true)] }; passRBlur = { colorAttachments: [colorAtt(vRays, true)] };
   bgRays = device.createBindGroup({ layout: bglRays, entries: [{ binding: 0, resource: vDp }, { binding: 1, resource: { buffer: uRays } }] });
   bgRBlur = device.createBindGroup({ layout: pRBlur.getBindGroupLayout(0), entries: [{ binding: 0, resource: a.createView() }] });

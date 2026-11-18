@@ -170,8 +170,8 @@ fn viewPath(rel: vec3f, up: vec3f, depth: f32) -> f32 { return max(depth, 0.0) /
 // the seabed: lit through the water (sun with caustics, sky), coloured by the water along the refracted view
 fn seabed(alb: vec3f, n: vec3f, up: vec3f, rel: vec3f, depth: f32, foot: f32) -> vec3f {
   let w = surfLight(up, rel);
-  let caus = caustics(rel, w.lt, up, depth, foot);
   let c = clamp(dot(n, up), 0.0, 1.0);
+  let caus = mix(1.0, caustics(rel, w.lt, up, depth, foot), smoothstep(0.3, 0.8, c));
   let lit = alb * (w.sun * exp(-w.k * depth) * caus * max(dot(n, w.lt), 0.0) / PI + w.sky * exp(-w.k * depth * 0.8) * (0.65 + 0.35 * c));
   if (O.mode.y > 0.0) { return lit; }
   let ext = wExt();

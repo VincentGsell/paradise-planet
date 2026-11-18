@@ -204,7 +204,7 @@ const POSES = [];
     for (let s = 0; s < 1500; s++) {
       const a = s * 2.399, rr = 40 + s * 3, ca = cos(a) * rr, co = abs(sin(a)) * rr + 30, q = at(ca, co, 0, 0), r2 = hypot(q[0], q[1], q[2]);
       const g = height(q[0] / r2, q[1] / r2, q[2] / r2, 0); if (g < lo || g > hi) continue;
-      if (clearing && kelp(q) > 0.3) continue;
+      if (clearing && (kelp(q) > 0.15 || [0, 1, 2, 3].some((k) => kelp(at(ca + cos(k * 1.57) * 6, co + sin(k * 1.57) * 6, 0, 0)) > 0.3))) continue;
       let bd = -1, bs = 0;
       for (let k = 0; k < 12; k++) {
         const b = k / 12 * TAU; let ok = 0;
@@ -216,7 +216,7 @@ const POSES = [];
     }
     return clearing ? seaSpot(lo, hi, up, look, false) : [at(20, 200, -9), at(60, 300, -24)];
   };
-  const REEF = seaSpot(-14, -10, 3, -5), GARDEN = seaSpot(-43, -36, 9, -6, true);
+  const REEF = seaSpot(-14, -10, 3, -5), GARDEN = seaSpot(-44, -35, 3.5, 3, true);
   pose(REEF[0], REEF[1], 12.5);                                             // 7 the reef, a few metres over the floor
   pose(GARDEN[0], GARDEN[1], 13);                                           // 8 garden at 40 m
 }
@@ -282,7 +282,8 @@ function render() {
   writeFrame();
   const e = device.createCommandEncoder();
   let slot = null;
-  if (hasTS) { for (let i = 0; i < qRead.length; i++) if (!qRead[i].busy) { slot = qRead[i]; break; } }
+  // the GPU time is read every 4th frame (each read-back allocates a promise: no garbage every frame)
+  if (hasTS && ((frameN & 3) === 0 || gpuLog)) { for (let i = 0; i < qRead.length; i++) if (!qRead[i].busy) { slot = qRead[i]; break; } }
   // the first pass carries the start timestamp
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();

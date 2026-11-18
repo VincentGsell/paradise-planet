@@ -49,7 +49,7 @@ function cluster(c, r, n, s, cc, col, k, swk) {
 }
 const endMesh = (kind, lod, i0) => { (MESH[kind] ||= [])[lod] = [i0, PIX.length - i0, 0]; };
 {
-  const BARK = [0.16, 0.11, 0.07], LEAF = [0.11, 0.21, 0.045], NEEDLE = [0.05, 0.11, 0.04], FROND = [0.15, 0.26, 0.05], BUSH = [0.09, 0.19, 0.04], ROCK = [0.33, 0.30, 0.27];
+  const BARK = [0.16, 0.11, 0.07], LEAF = [0.11, 0.21, 0.045], NEEDLE = [0.05, 0.11, 0.04], FROND = [0.15, 0.26, 0.05], BUSH = [0.09, 0.19, 0.04], ROCK = [0.36, 0.31, 0.25];
   for (let lod = 0; lod < 3; lod++) {
     const sd = [8, 5, 3][lod];
     // broadleaf: a leaning trunk forking into branches, a crown of leaf clusters
@@ -67,7 +67,7 @@ const endMesh = (kind, lod, i0) => { (MESH[kind] ||= [])[lod] = [i0, PIX.length 
     // conifer: a straight trunk, tiers of drooping needle cards
     rseed(202); i0 = PIX.length;
     tube([[0, -0.05, 0], [0, 0.5, 0], [0, 0.97, 0]], [0.028, 0.018, 0.004], max(3, sd - 2), BARK, 0, 0, 0.8);
-    const tiers = [10, 6, 3][lod];
+    const tiers = [10, 6, 5][lod];
     for (let t = 0; t < tiers; t++) {
       const f = t / tiers, y = 0.2 + 0.78 * f, rad = 0.3 * pow(1 - f * 0.95, 1.1) + 0.02, m = [16, 9, 6][lod];
       for (let i = 0; i < m; i++) {

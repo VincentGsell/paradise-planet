@@ -4,7 +4,7 @@
 // Fair-weather cumulus. The layer follows the planet's size within bounds: a 10 km world keeps clouds you can fly
 // over, a 50 km one gets taller ones.
 const CK = clamp(R / 15000, 0.6, 1.3);
-let CLOUDBIAS = URLQ.has('clear') ? -0.6 : -0.07; // ?clear: no clouds (tests)
+let CLOUDBIAS = URLQ.has('clear') ? -0.6 : -0.11; // ?clear: no clouds (tests)
 const CBASE = clamp(0.042 * R, 380, 950), CTHICK = clamp(0.075 * R, 520, 1500);
 const CSTEPS = [96, 64, 40][LV], CSHN = [1024, 768, 512][LV];
 const tCShape = device.createTexture({ size: [128, 128, 128], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 4, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });

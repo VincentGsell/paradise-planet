@@ -106,7 +106,7 @@ fn groundAlbedo(h: f32, n: vec3f, up: vec3f, rel: vec3f, foot: f32) -> vec3f {
   var land = mix(meadow, forest, smoothstep(0.52, 0.66, n0 + (n2 - 0.5) * 0.2) * (1.0 - smoothstep(0.35, 0.5, a)));
   let alpine = vec3f(0.17, 0.19, 0.09);
   land = mix(land, alpine, smoothstep(0.32, 0.48, a));
-  let rock = mix(vec3f(0.17, 0.155, 0.14), vec3f(0.26, 0.245, 0.23), n2) * (0.8 + 0.35 * n3);
+  let rock = mix(vec3f(0.22, 0.18, 0.14), vec3f(0.33, 0.28, 0.22), n2) * (0.8 + 0.35 * n3);
   land = mix(land, rock, smoothstep(0.45, 0.7, slope + (n2 - 0.5) * 0.25));
   land = mix(land, rock, smoothstep(0.55, 0.7, a));
   land *= 0.86 + 0.28 * n3;
@@ -127,7 +127,8 @@ struct VO { @builtin(position) clip: vec4f, @location(0) rel: vec3f, @location(1
 }
 @fragment fn fs(i: VO) -> @location(0) vec4f {
   let n = normalize(i.nrm); let up = normalize(i.up);
-  let foot = length(i.rel) * F.misc.x;
+  // the pixel's footprint on the ground: larger at grazing angles (the detail fades there instead of streaking)
+  let foot = length(i.rel) * F.misc.x / max(abs(dot(n, normalize(-i.rel))), 0.12);
   var alb = groundAlbedo(i.h, n, up, i.rel, foot);
   if (i.h < 0.0) { return vec4f(seabed(alb, n, up, i.rel, -i.h, foot), 1.0); }
   // wet sand where the waves run up the beach

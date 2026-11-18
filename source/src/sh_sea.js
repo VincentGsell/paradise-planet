@@ -63,7 +63,7 @@ const W_WLIT = /*wgsl*/`
 fn waterLit(alb: vec3f, n: vec3f, up: vec3f, rel: vec3f, trans: f32, foot: f32, glow: vec3f) -> vec3f {
   let depth = max(F.pl.x - length(F.cam.xyz + rel), 0.0);
   let w = surfLight(up, rel);
-  let caus = caustics(rel, w.lt, up, depth, foot);
+  let caus = mix(1.0, caustics(rel, w.lt, up, depth, foot), smoothstep(0.2, 0.7, dot(n, up)));
   let ndl = dot(n, w.lt);
   let sun = w.sun * exp(-w.k * depth) * caus;
   let back = (max(-ndl, 0.0) * 0.85 + 0.15) * trans;
@@ -155,6 +155,8 @@ fn pal(h: f32) -> vec3f {
   return o;
 }
 @fragment fn fs(i: LO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
+  // never in the lens: within 1.6 m of the eye the leaves dissolve
+  let dc = length(i.rel); if (dc < 1.6 && fract(sin(dot(i.clip.xy, vec2f(12.9898, 78.233))) * 43758.5) > smoothstep(0.6, 1.6, dc)) { discard; }
   var n = normalize(i.n); if (!ff) { n = -n; }
   let foot = length(i.rel) * F.misc.x;
   var alb = i.col * (0.72 + 0.28 * smoothstep(0.0, 0.25, abs(i.uv.x))) * mix(0.5, 1.12, i.uv.y);

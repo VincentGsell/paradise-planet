@@ -4,7 +4,7 @@
 
 Meadows of tall grass bending in the wind, palms on white beaches, clouds drifting over the hills, a sun that crosses
 the day, and under the waves a garden of kelp and fish. All of it is made by code: no images, no 3D models, no sound
-files. The whole planet fits in **one HTML file of about 145 KB**.
+files. The whole planet fits in **one HTML file of about 150 KB**.
 
 ![The beach at sunset](.github/screenshots/beach-sunset.jpg)
 
@@ -30,8 +30,9 @@ Nothing to install, and it works offline. It needs a browser with **WebGPU**.
 
 | | |
 |---|---|
-| ![Orbit](.github/screenshots/orbit.jpg) | ![Above the clouds](.github/screenshots/above-clouds.jpg) |
-| ![Meadow](.github/screenshots/meadow.jpg) | ![Kelp garden](.github/screenshots/garden.jpg) |
+| ![The planet from orbit](.github/screenshots/orbit.jpg) | ![Above the clouds](.github/screenshots/above-clouds.jpg) |
+| ![A meadow over the bay](.github/screenshots/meadow.jpg) | ![The forest edge](.github/screenshots/forest.jpg) |
+| ![The reef](.github/screenshots/reef.jpg) | ![The kelp garden at 40 m](.github/screenshots/garden.jpg) |
 
 ## Controls
 

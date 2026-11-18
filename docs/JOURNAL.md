@@ -22,7 +22,7 @@
 | L4 | nuages volumétriques sans météo (coquille, Nubis, multi-diffusion, poudre, AO), carte d'ombre de Beer | fait |
 | L5 | herbe (GrassField d'OpenG), fleurs, arbres / palmiers / buissons / rochers (3 LOD), ombres en cascades, god rays, faune, pollen, lucioles | fait, à polir |
 | L6 | jardin sous-marin 18–55 m : kelp d'Abyssal Garden, herbiers, coraux mous, poissons, neige marine, rayons sous l'eau | fait, à polir |
-| L7 | critique visuel, perf, README | en cours |
+| L7 | critique visuel (3 passes), perf, README | en cours : perf validée, critique pas encore « mineur seulement » |
 
 ## Choix faits seul (à valider par Vincent)
 
@@ -38,11 +38,34 @@
 6. **Sans asset** : tous les maillages (arbres, palmiers, rochers, poissons, oiseaux) sont générés au chargement ou
    dans les shaders.
 
-## Mesures (RTX 5070, Chrome 157, headless)
+## Mesures (RTX 5070, Chrome 157, headless, vol scripté de 60 s orbite → prairie → plongée)
 
-- Vol scripté de 60 s, 2560×1440, High, 30 km : GPU moyen 5,1 ms, p99 7,7 ms, max 8,0 ms.
-- Vol scripté de 60 s, 1920×1080, High : GPU moyen 3,7 ms, p99 5,9 ms, max 6,1 ms.
-- `index.html` minifié : 142,9 kB (50,5 kB gzip).
+| Résolution | Niveau | GPU moyen | GPU p99 | GPU max |
+|---|---|---|---|---|
+| 3840×2160 (4K natif, sans résolution dynamique) | High | 6,9 ms | 9,9 ms | 10,5 ms |
+| 2560×1440 | High | 4,4 ms | 6,3 ms | 6,6 ms |
+| 1920×1080 | High | 3,3 ms | 5,0 ms | 5,4 ms |
+
+- Cible du prompt (RTX 5070 Ti, 1440p : ≤ 11 ms en moyenne, aucune image > 16,7 ms) : tenue sur une 5070 non Ti.
+- 60 images/s verrouillées en 4K sur la 5070 : le GPU tient même sans résolution dynamique.
+- Quelques pics CPU (jusqu'à ~16-18 ms par image en headless, sans vsync) : à vérifier en fenêtre.
+- `index.html` minifié : 151 kB (53,5 kB gzip).
+
+## Le critique visuel (sous-agent qui ne voit que les images)
+
+Trois passes. Corrigé en route : un trou dans la mer (sphère de visibilité sans la surface de l'eau), une planète
+décalée en orbite (base caméra dégénérée en visée verticale), des nuages en terrasses (pas trop longs), des jupes
+d'eau en « codes-barres », des poses à côté de leur sujet (désormais cherchées sur la planète), un coucher sans
+couleur (heure calée sur la hauteur du soleil, étalonnage heure dorée), le sous-marin vide (coraux, éponges, bancs de
+poissons, clairière dans le kelp), des stries d'altitude (bruit de détail étiré en vue rasante).
+
+Restent, selon la 3e passe (à reprendre) :
+- nuages : bords encore en peigne ou en damier par endroits, plafond trop uniforme vu de dessous ;
+- coraux encore trop lisses (« gelée ») et caustiques parfois dentelées sur les parois ;
+- palette encore un peu froide dans l'ombre, roches à réchauffer davantage ;
+- rivage triangulé au loin, sans déferlante ;
+- vue d'orbite : pas de terminateur à cette heure, nuages tous de la même taille ;
+- sapins lointains « en assiettes » (LOD), herbe en épines sur certaines pentes.
 
 ## Notes
 
