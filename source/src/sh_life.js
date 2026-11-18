@@ -173,7 +173,7 @@ const TAUW = 6.2831853 / 38.0; // the gust pattern repeats every 76 m (the camer
   tip = mix(tip, tip * vec3f(1.2, 0.95, 0.7), i.c.w * 0.5);
   let alb = mix(base, tip, smoothstep(0.0, 0.9, row)) * (0.85 + 0.3 * detail(2u, i.rel, foot));
   let cs = cloudShadow(i.rel);
-  let sun = sunAt(up, 1.0) * cs.x;
+  let sun = sunAt(up, 1.0) * cs.x * sunShadow(i.rel, up);
   let sky = skyIrr(up, 1.0) * (0.45 + 0.55 * cs.y);
   let l = F.sun.xyz;
   let ndl = max(dot(n, l), 0.0);
@@ -266,7 +266,7 @@ fn emit(kind: u32, g: Ground, d: f32, scale: f32, extra: u32) {
     if (r < pB) { kind = 0u; s = mix(7.0, 13.0, rnd(g.hash, 4u)); }
     else if (r < pB + pC) { kind = 1u; s = mix(8.0, 17.0, rnd(g.hash, 4u)); }
     else if (r < pB + pC + pP) { kind = 2u; s = mix(6.0, 10.5, rnd(g.hash, 4u)); }
-    if (kind == 99u || !inView(g.rel + g.up * s * 0.5, s * 0.8)) { return; }
+    if (kind == 99u || !inView(g.rel + g.up * s * 0.5, s * 0.8 + 30.0)) { return; }
     emit(kind, g, d, s * edge, 0u);
   } else {
     let pBush = b.x * 0.05 + b.y * 0.22;
@@ -293,7 +293,8 @@ fn wind3(rel: vec3f) -> f32 {
   let x = dot(rel, LF.wind.xyz) + LF.gust.y;
   return 0.5 + 0.5 * sin(x * 6.2831853 / 38.0 - LF.gust.x * 1.7) * sin(x * 6.2831853 / 76.0 - LF.gust.x * 0.6);
 }
-@vertex fn vs(v: VI, @builtin(instance_index) ii: u32) -> PO {
+@vertex fn vs(v: VI, @builtin(instance_index) ii: u32) -> PO { return propVertex(v, ii, F.vp); }
+fn propVertex(v: VI, ii: u32, vp: mat4x4f) -> PO {
   let it = IN[ii];
   let up = octDec(it.b.x); let h = it.b.y; let s = it.a.w;
   let yaw = rnd(h, 11u) * 6.2831853;
@@ -310,7 +311,7 @@ fn wind3(rel: vec3f) -> f32 {
   var p = it.a.xyz + (tx * lp.x + up * lp.y + tz * lp.z) * s;
   p += (LF.wind.xyz * bend + (tx * cos(ph) + tz * sin(ph)) * flutter) * s;
   var o: PO;
-  o.clip = F.vp * vec4f(p, 1.0); o.rel = p;
+  o.clip = vp * vec4f(p, 1.0); o.rel = p;
   o.n = normalize(tx * v.n.x + up * v.n.y + tz * v.n.z);
   o.up = up; o.uv = v.uv; o.m = v.m; o.h = h;
   return o;
@@ -358,7 +359,7 @@ fn leaves(uv: vec2f, h: f32) -> f32 {
   let foot = length(i.rel) * F.misc.x;
   if (kind == 4u) { alb *= 0.8 + 0.4 * detail(3u, i.rel, foot); }
   let cs = cloudShadow(i.rel);
-  let sun = sunAt(up, 2.0) * cs.x; let sky = skyIrr(up, 2.0) * (0.45 + 0.55 * cs.y);
+  let sun = sunAt(up, 2.0) * cs.x * sunShadow(i.rel, n); let sky = skyIrr(up, 2.0) * (0.45 + 0.55 * cs.y);
   let l = F.sun.xyz;
   let ndl = max(dot(n, l), 0.0);
   let back = pow(max(dot(normalize(-i.rel), -l), 0.0), 4.0) * trans + max(-dot(n, l), 0.0) * trans * 0.5;

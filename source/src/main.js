@@ -13,7 +13,7 @@ const scenePipe = (m, vsE, fsE, layout, o = {}) => device.createRenderPipeline({
   depthStencil: { format: DEPTH, depthWriteEnabled: o.depthWrite || !o.blend, depthCompare: 'greater' }, multisample: { count: AA } });
 const pTerrain = scenePipe(mTerr, 'vs', 'fs', lay(bgl0, bglTerr, bglOcean));
 const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater, bglOcean), { blend: OVER, depthWrite: true });
-const mGrass = mod(W_LIFE + W_GRASS_DRAW), layGrass = lay(bgl0, bglTerr, bglLife, bglRead);
+const mGrass = mod(W_LIFE + W_GRASS_DRAW);
 const pGrass = scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
 const pFlower = scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
 const mProps = mod(W_LIFE + W_PROPS_DRAW);
@@ -188,6 +188,7 @@ function writeFrame() {
   f[52] = 2 * ty / H; f[53] = 1; f[54] = LV; f[55] = frameN;
   for (let k = 0; k < 4; k++) for (let c = 0; c < 3; c++) { const v = CP[c] / DSC[k]; f[56 + k * 4 + c] = v - 256 * floor(v / 256); }
   f[75] = dtLast;
+  shadowMatrices();
   Q.writeBuffer(uFrame, 0, FU);
   // the star field turns with the sun
   STU[0] = cos(sunPhi); STU[1] = sin(sunPhi); STU[2] = 1; STU[3] = 4000;
@@ -213,7 +214,7 @@ function render() {
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();
   lastDraw = lodUpdate(e, BUILDS);
-  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e);
+  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e); shadowPasses(e);
   let r = e.beginRenderPass(passScene);
   r.setBindGroup(0, bg0); r.setBindGroup(2, bgOcean);
   r.setPipeline(pTerrain); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, lastDraw);

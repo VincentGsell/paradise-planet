@@ -76,18 +76,22 @@ const W_EXPO = W_FRAME + /*wgsl*/`
 @group(1) @binding(0) var lowRes: texture_2d<f32>;
 @group(1) @binding(1) var<storage, read_write> E: array<f32, 4>;
 var<workgroup> acc: array<f32, 256>;
+var<workgroup> wacc: array<f32, 256>;
 @compute @workgroup_size(256) fn main(@builtin(local_invocation_index) li: u32) {
   let d = textureDimensions(lowRes);
-  var s = 0.0;
+  // exposed for the land more than for the sky: the lower part of the image weighs more
+  var s = 0.0; var ws = 0.0;
   for (var i = li; i < d.x * d.y; i += 256u) {
-    let c = textureLoad(lowRes, vec2u(i % d.x, i / d.x), 0).rgb;
-    s += log2(max(dot(c, vec3f(0.2126, 0.7152, 0.0722)), 1e-5));
+    let q = vec2u(i % d.x, i / d.x);
+    let c = textureLoad(lowRes, q, 0).rgb;
+    let w = 0.2 + smoothstep(0.2, 0.7, f32(q.y) / f32(d.y));
+    s += log2(max(dot(c, vec3f(0.2126, 0.7152, 0.0722)), 1e-5)) * w; ws += w;
   }
-  acc[li] = s;
+  acc[li] = s; wacc[li] = ws;
   workgroupBarrier();
-  for (var k = 128u; k > 0u; k >>= 1u) { if (li < k) { acc[li] += acc[li + k]; } workgroupBarrier(); }
+  for (var k = 128u; k > 0u; k >>= 1u) { if (li < k) { acc[li] += acc[li + k]; wacc[li] += wacc[li + k]; } workgroupBarrier(); }
   if (li == 0u) {
-    let avg = acc[0] / f32(d.x * d.y);
+    let avg = acc[0] / max(wacc[0], 1e-3);
     // target: mid grey for a daylight scene; below, only half of the darkening is compensated
     let lum = exp2(avg);
     let tgt = 0.2 / max(lum, 1e-5) * pow(clamp(lum / 0.1, 1e-4, 1.0), 0.45);

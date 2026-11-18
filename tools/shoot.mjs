@@ -21,7 +21,7 @@ const logs = [];
 page.on('console', (m) => { const t = m.text(); if (m.type() === 'error' || m.type() === 'warning' || /GPU|error/i.test(t)) logs.push(`[${m.type()}] ${t}`); });
 page.on('pageerror', (e) => logs.push('[pageerror] ' + e.message));
 for (const p of poses) {
-  const url = pathToFileURL(path.join(root, 'dev.html')).href + `?shot&q=${q}&km=${km}&pose=${p}${hour ? '&hour=' + hour : ''}${prof ? '&prof' : ''}`;
+  const url = pathToFileURL(path.join(root, 'dev.html')).href + `?shot&q=${q}&km=${km}&pose=${p}${hour ? '&hour=' + hour : ''}${prof ? '&prof' : ''}${process.argv.includes('--clear') ? '&clear' : ''}`;
   await page.goto(url);
   const t0 = Date.now();
   // wait for the page to be up, then for the terrain to settle (no build request for 30 frames)

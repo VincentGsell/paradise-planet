@@ -21,6 +21,8 @@ struct Frame {
   wind: vec4f,    // xyz: wind direction (body frame, tangent at the camera), w: strength
   csx: vec4f,     // cloud shadow map: sun-space x axis, w: 1 / half extent (m)
   csy: vec4f,     // sun-space y axis
+  shm: array<mat4x4f, 3>, // sun shadow cascades: camera-relative -> shadow clip
+  shp: vec4f,     // cascade radii (m), w: cascades
 };
 @group(0) @binding(0) var<uniform> F: Frame;
 @group(0) @binding(1) var<storage, read> PERM: array<u32, 512>;

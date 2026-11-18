@@ -106,7 +106,8 @@ function evict() {
 const takeSlot = () => (nFree ? freeSl[--nFree] : evict());
 
 // ---------------------------------------------------------------- per frame: select, request, draw list
-let frameNo = 1, nJobs = 0, nDraw = 0, nReq = 0, nBuilt = 0, nWater = 0;
+let frameNo = 1, nJobs = 0, nDraw = 0, nReq = 0, nBuilt = 0, nWater = 0, nShOnly = 0, nDrawSh = 0;
+const SHO = new Int32Array(SLOTS);
 const WLU = new Uint32Array(SLOTS);
 const MAXR = 256, reqS = new Int32Array(MAXR), reqP = new Float64Array(MAXR);
 const CAM = new Float64Array(3), FR = new Float64Array(15); // camera; frustum planes (4 x normal) + forward
@@ -119,9 +120,9 @@ function visit(s) {
     if (nKid[s * 4] >= 0) { for (let c = 0; c < 4; c++) visit(nKid[s * 4 + c]); return; }
     if (nReq < MAXR) { reqS[nReq] = s; reqP[nReq++] = d / nSize[s]; }
   }
-  // frustum
+  // frustum: out of view, a patch near the camera still casts its shadow into it
   const r = nRad[s];
-  for (let p = 0; p < 12; p += 3) if (cx * FR[p] + cy * FR[p + 1] + cz * FR[p + 2] < -r) return;
+  for (let p = 0; p < 12; p += 3) if (cx * FR[p] + cy * FR[p + 1] + cz * FR[p + 2] < -r) { if (d < SHR[NCASC - 1] && nShOnly < SLOTS) SHO[nShOnly++] = s; return; }
   // below the horizon of the planet's bounding sphere: hidden behind it
   const pr = R + nHmax[s] + r, cr = sqrt(CAM[0] * CAM[0] + CAM[1] * CAM[1] + CAM[2] * CAM[2]);
   if (cr > R + AMAX * 0.5) {
@@ -130,13 +131,17 @@ function visit(s) {
     const hz = acos(clamp((R - 50) / cr, -1, 1)) + acos(clamp((R - 50) / max(pr, R), -1, 1)) + r / nl;
     if (ang > hz) return;
   }
-  const q = nDraw++ * 12, par = nPar[s];
+  record(s, nDraw++);
+  // the sea surface is drawn over the patches that reach below the sea level
+  if (nHmin[s] < 2) WLU[nWater++] = nDraw - 1;
+}
+// the draw record of node s at index i
+function record(s, i) {
+  const o = s * 3, q = i * 12;
   PTF[q] = Math.fround(nC[o]) - CAM[0]; PTF[q + 1] = Math.fround(nC[o + 1]) - CAM[1]; PTF[q + 2] = Math.fround(nC[o + 2]) - CAM[2];
   PTF[q + 3] = nL[s] ? LODQ * nSize[s] * 2 : 0;
   PTF[q + 4] = nC[o]; PTF[q + 5] = nC[o + 1]; PTF[q + 6] = nC[o + 2]; PTF[q + 7] = nSize[s] / 32 * 3 + 0.5;
   PTF[q + 8] = s; PTF[q + 9] = nL[s]; PTF[q + 10] = nSize[s] / 32; PTF[q + 11] = 0;
-  // the sea surface is drawn over the patches that reach below the sea level
-  if (nHmin[s] < 2) WLU[nWater++] = nDraw - 1;
 }
 // builds the requested children, nearest (relative to size) first, BUILDS patches at most
 function serveRequests(budget) {
@@ -158,11 +163,13 @@ function serveRequests(budget) {
 }
 // one LOD update: select from the camera, then queue the builds; returns the number of patches to draw
 function lodUpdate(enc, budget) {
-  frameNo++; nDraw = 0; nReq = 0; nWater = 0;
+  frameNo++; nDraw = 0; nReq = 0; nWater = 0; nShOnly = 0;
   for (let f = 0; f < 6; f++) visit(roots[f]);
+  // the shadow casters out of view follow the visible patches
+  nDrawSh = nDraw; for (let i = 0; i < nShOnly && nDrawSh < SLOTS; i++) record(SHO[i], nDrawSh++);
   serveRequests(budget);
   flushJobs(enc);
-  Q.writeBuffer(bPatches, 0, PTF, 0, nDraw * 12);
+  Q.writeBuffer(bPatches, 0, PTF, 0, nDrawSh * 12);
   Q.writeBuffer(bWaterList, 0, WLU, 0, nWater);
   return nDraw;
 }

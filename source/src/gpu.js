@@ -45,23 +45,28 @@ const VF = SS.VERTEX | SS.FRAGMENT, VFC = VF | SS.COMPUTE;
 // ---------------------------------------------------------------- shared resources: group 0 of every pass
 const sLin = device.createSampler({ magFilter: 'linear', minFilter: 'linear', addressModeU: 'clamp-to-edge', addressModeV: 'clamp-to-edge' });
 const sRep = device.createSampler({ addressModeU: 'repeat', addressModeV: 'repeat', magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'linear', maxAnisotropy: LV > 1 ? 1 : 8 });
-const FU = new Float32Array(88), uFrame = ubuf(352);
+const FU = new Float32Array(140), uFrame = ubuf(560);
 const AU = new Float32Array(28), uAtmo = ubuf(112);
 const bPerm = buf(PERM, BU.STORAGE);
 const LUTU = TU.STORAGE_BINDING | TU.TEXTURE_BINDING;
 const tTrans = tex(TLUT[0], TLUT[1], HDR, LUTU), tMulti = tex(MLUT[0], MLUT[1], HDR, LUTU), tIrr = tex(ELUT[0], ELUT[1], HDR, LUTU), tSkyV = tex(SLUT[0], SLUT[1], HDR, LUTU);
 const tBlack = tex(1, 1, HDR, TU.TEXTURE_BINDING | TU.RENDER_ATTACHMENT);
 let tCloudSh = tex(1, 1, HDR, TU.TEXTURE_BINDING);
+const tShadow = device.createTexture({ size: [SHN, SHN, NCASC], format: DEPTH, usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
+const tShDummy = device.createTexture({ size: [1, 1, 1], format: DEPTH, usage: TU.RENDER_ATTACHMENT | TU.TEXTURE_BINDING });
+const sCmp = device.createSampler({ compare: 'less-equal', magFilter: 'linear', minFilter: 'linear' });
 const bgl0 = device.createBindGroupLayout({ entries: [
   { binding: 0, visibility: VFC, buffer: {} }, { binding: 1, visibility: VFC, buffer: { type: 'read-only-storage' } },
   { binding: 2, visibility: VFC, buffer: {} }, { binding: 3, visibility: VFC, sampler: {} },
   { binding: 4, visibility: VFC, texture: {} }, { binding: 5, visibility: VFC, texture: {} }, { binding: 6, visibility: VFC, texture: {} }, { binding: 7, visibility: VFC, texture: {} },
-  { binding: 8, visibility: VFC, sampler: {} }, { binding: 9, visibility: VFC, texture: {} }] });
+  { binding: 8, visibility: VFC, sampler: {} }, { binding: 9, visibility: VFC, texture: {} },
+  { binding: 10, visibility: VFC, texture: { sampleType: 'depth', viewDimension: '2d-array' } }, { binding: 11, visibility: VFC, sampler: { type: 'comparison' } }] });
 // the LUT passes write one of the textures of group 0: they get a group where that one is replaced by a stand-in
-const mkBG0 = (t, m, e, s, c) => device.createBindGroup({ layout: bgl0, entries: [
+const mkBG0 = (t, m, e, s, c, sh = tShadow) => device.createBindGroup({ layout: bgl0, entries: [
   { binding: 0, resource: { buffer: uFrame } }, { binding: 1, resource: { buffer: bPerm } }, { binding: 2, resource: { buffer: uAtmo } },
   { binding: 3, resource: sLin }, { binding: 4, resource: t.createView() }, { binding: 5, resource: m.createView() }, { binding: 6, resource: e.createView() },
-  { binding: 7, resource: s.createView() }, { binding: 8, resource: sRep }, { binding: 9, resource: c.createView() }] });
+  { binding: 7, resource: s.createView() }, { binding: 8, resource: sRep }, { binding: 9, resource: c.createView() },
+  { binding: 10, resource: sh.createView({ dimension: '2d-array' }) }, { binding: 11, resource: sCmp }] });
 let bg0 = mkBG0(tTrans, tMulti, tIrr, tSkyV, tCloudSh);
 const bg0Sky = mkBG0(tTrans, tMulti, tIrr, tBlack, tBlack);
 const lay = (...g) => device.createPipelineLayout({ bindGroupLayouts: g });

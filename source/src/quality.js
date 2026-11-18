@@ -19,3 +19,4 @@ const AA = LV > 1 ? 1 : 4;                    // MSAA samples
 const SLOTS = [1536, 1024, 640][LV];          // terrain patches kept on the GPU
 const LODQ = [2.4, 1.9, 1.4][LV];             // split when closer than LODQ x patch size
 const BUILDS = [24, 16, 10][LV];              // patches generated per frame
+const NCASC = LV > 1 ? 2 : 3, SHN = [2048, 1536, 1024][LV], SHR = [28, 200, 1800]; // sun shadow cascades (radius, m)

@@ -23,6 +23,8 @@ struct Atmo {
 @group(0) @binding(7) var tSky: texture_2d<f32>;
 @group(0) @binding(8) var sRep: sampler;
 @group(0) @binding(9) var tCloudSh: texture_2d<f32>;
+@group(0) @binding(10) var tShadow: texture_depth_2d_array;
+@group(0) @binding(11) var sCmp: sampler_comparison;
 const TSZ = vec2f(${TLUT}); const MSZ = vec2f(${MLUT}); const ESZ = vec2f(${ELUT}); const SSZ = vec2f(${SLUT});
 fn rb() -> f32 { return A.ray.w; }
 fn rt() -> f32 { return A.mie.w; }

@@ -259,7 +259,7 @@ fn seaFoot(rel: vec3f, up: vec3f) -> f32 {
   let tx = normalize(ax - n * dot(ax, n)); let ty = cross(n, tx);
   let v = normalize(-i.rel); let l = F.sun.xyz; let mus = dot(up, l);
   let cs = cloudShadow(i.rel);
-  let sun = sunAt(up, 0.0) * cs.x;
+  let sun = sunAt(up, 0.0) * cs.x * sunShadow(i.rel, up);
   let amb = skyIrr(up, 0.0) / PI * (0.55 + 0.45 * cs.y);
   let w = wLight(sun, amb, up);
   // foam: whitecaps where the surface folds, surf and swash at the shore

@@ -161,6 +161,7 @@ const bglPOut = device.createBindGroupLayout({ entries: [{ binding: 0, visibilit
 const mPropsCS = mod(W_LIFE + W_PROPS_CS);
 const pPropsCS = [0, 1].map((L) => device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglPOut), compute: { module: mPropsCS, entryPoint: 'main', constants: { LAYER: L } } }));
 const pPropsFin = device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglPOut), compute: { module: mPropsCS, entryPoint: 'fin' } });
+const layGrass = lay(bgl0, bglTerr, bglLife, bglRead);
 const bgPropsR = BOFF.map((o, b) => device.createBindGroup({ layout: bglRead, entries: [{ binding: 0, resource: { buffer: bProps, offset: o * 32, size: BCAP[b % 3] * 32 } }] }));
 const bBase = buf(new Uint32Array(BOFF), BU.STORAGE);
 const bgPOut = device.createBindGroup({ layout: bglPOut, entries: [{ binding: 0, resource: { buffer: bProps } }, { binding: 1, resource: { buffer: bPArgs } }, { binding: 2, resource: { buffer: bBase } }] });

@@ -26,10 +26,28 @@ fn cloudShadow(rel: vec3f) -> vec2f {
   if (d.x < 2u) { return vec2f(1.0); }
   return cloudShadowMap(rel);
 }
+// the sun's shadow (cascades around the camera, PCF), with a normal offset against acne
+fn sunShadow(rel: vec3f, n: vec3f) -> f32 {
+  let d = length(rel);
+  let nc = u32(F.shp.w);
+  var c = 0u;
+  if (d > F.shp.x * 0.8) { c = 1u; }
+  if (d > F.shp.y * 0.85) { c = 2u; }
+  if (c >= nc || d > F.shp[nc - 1u] * 0.9) { return 1.0; }
+  let texel = F.shp[c] * 2.0 / f32(textureDimensions(tShadow).x);
+  let p = rel + n * texel * 1.6;
+  let q = F.shm[c] * vec4f(p, 1.0);
+  let uv = vec2f(q.x * 0.5 + 0.5, 0.5 - q.y * 0.5);
+  if (any(uv < vec2f(0.0)) || any(uv > vec2f(1.0)) || q.z > 1.0) { return 1.0; }
+  let ts = 1.0 / f32(textureDimensions(tShadow).x);
+  var s = 0.0;
+  for (var j = -1; j <= 1; j++) { for (var i = -1; i <= 1; i++) { s += textureSampleCompareLevel(tShadow, sCmp, uv + vec2f(f32(i), f32(j)) * ts, c, q.z - 0.0004 * f32(c + 1u)); } }
+  return s / 9.0;
+}
 // a lit Lambert surface: sun, sky (more from above than from the side)
 fn surfaceLight(alb: vec3f, n: vec3f, up: vec3f, rel: vec3f, h: f32) -> vec3f {
   let cs = cloudShadow(rel);
-  let sun = sunAt(up, h) * cs.x;
+  let sun = sunAt(up, h) * cs.x * sunShadow(rel, n);
   let sky = skyIrr(up, h) * (0.45 + 0.55 * cs.y);
   let c = dot(n, up);
   return alb * (sun * max(dot(n, F.sun.xyz), 0.0) / PI + sky / PI * (0.62 + 0.38 * c));
