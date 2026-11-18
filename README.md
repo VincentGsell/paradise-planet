@@ -8,17 +8,28 @@ files. The whole planet fits in **one HTML file of about 150 KB**.
 
 ![The beach at sunset](.github/screenshots/beach-sunset.jpg)
 
+## Where it comes from
+
+Paradise Planet is a small snapshot of **OpenG**, the engine I have been building for years (not public yet). OpenG
+grew out of [FMeX](https://github.com/VincentGsell/FMeX), my earlier 3D framework for Delphi. The planet comes from there: the
+cube-sphere and its level of detail, which I have reworked for years, the relief, the flight, the grass, the ocean
+and the sun.
+
+This browser version was written with an AI, Claude (Anthropic), from a prompt I wrote: [`prompt.txt`](prompt.txt)
+([French version](prompt.fr.txt)). The AI ported the techniques of my engine to WebGPU in one HTML file. Then we tuned
+it together, image after image, until it looked right.
+
 ## Try it
 
 1. Download [`index.html`](index.html), or open the live page.
 2. Open it in **Chrome** or **Edge** on a desktop computer.
-3. Pick the size of your planet (10 to 50 km across) and press **Fly**.
+3. Watch the arrival, from orbit down to a beach, then press **Fly**.
 
 Nothing to install, and it works offline. It needs a browser with **WebGPU**.
 
 ## What's there
 
-- **A whole planet**, round and seamless, with mountains, bays and lagoons, from orbit to 1.5 m above the ground
+- **A whole planet**, round and seamless, 10 to 50 km across, with mountains, bays and lagoons, from orbit to 1.5 m above the ground
 - **A physically based atmosphere**: blue sky, golden sunsets, stars and the Milky Way at night
 - **Volumetric clouds** drifting with the wind, and their shadows running over the land and the sea
 - **The sea**: real waves, foam on the shore, turquoise shallows, and a view from below through the surface
@@ -39,15 +50,19 @@ Nothing to install, and it works offline. It needs a browser with **WebGPU**.
 | | Keyboard & mouse |
 |---|---|
 | Look around | Move the mouse |
-| Fly | `W` `A` `S` `D` (the same keys on AZERTY: `Z` `Q` `S` `D`) |
+| Fly | `W` `A` `S` `D` |
 | Down / up | `Q` / `E` |
 | Faster | Hold `Shift`, or the mouse wheel |
 | Viewpoints | `1` to `8` |
-| Time faster / slower / pause | `T` / `G` / `P`, or the buttons at the bottom |
+| Time faster / slower / pause | `T` / `G` / `P` |
 | Menu | `Esc` |
 | Stats | `H` |
 
-Near the ground the horizon levels itself; out in space you can roll and loop freely.
+The keys are the ones at those places on your keyboard (`Z` `Q` `S` `D` on a French one), and the menu shows them as
+printed on yours. To change one, click it in the menu and press the new key.
+
+`Esc` opens the menu without leaving the world: the time of day, the size of the planet and the detail level are
+there. Near the ground the horizon levels itself; out in space you can roll and loop freely.
 
 ## Detail levels
 
@@ -69,8 +84,6 @@ shadows and clouds. On every level the resolution adapts on its own to keep 60 f
 - **The sun's shadows** are three cascades around the camera; the god rays march through a low haze lit only where
   the sun gets through.
 
-The planet technology comes from my own engine (not public yet), ported to the browser in its minimal form.
-
 ## Make it your own
 
 The readable source code is in the [`source`](source) folder. To rebuild `index.html` you need
@@ -87,4 +100,5 @@ npm run build
 ## Credits
 
 The underwater garden (the kelp leaves, the sea floor plants, the look of the water) is adapted from
-[Abyssal Garden](https://github.com/Noniv/abyssal-garden) by Maksymilian Dendura (MIT).
+[Abyssal Garden](https://github.com/Noniv/abyssal-garden) by Maksymilian Dendura, under the MIT License
+([`LICENSES/abyssal-garden.txt`](LICENSES/abyssal-garden.txt)).

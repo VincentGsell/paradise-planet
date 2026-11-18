@@ -1,5 +1,6 @@
 // ============================================================================
 // WGSL: the garden under the sea, 20 to 50 m deep (after Abyssal Garden's kelp, sea floor and fish)
+// Abyssal Garden: Copyright (c) 2026 Maksymilian Dendura, MIT License (LICENSES/abyssal-garden.txt)
 // ============================================================================
 // Kelp columns and tufts of sea grass are placed by the planet's lattice like the meadows; each column's leaves are
 // rebuilt in the vertex shader from the column alone (instance = column x leaf), so nothing but the columns is

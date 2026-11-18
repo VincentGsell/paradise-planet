@@ -5,11 +5,15 @@
 
 ## À faire à la publication (pas avant)
 
-- **Prompt public** : remplacer la mention d'OpenG par « my own engine (not public yet) », sans rien retirer
-  d'autre (demande de Vincent le 18/11 : OpenG n'est pas encore publié). Garder `prompt.txt` fidèle au contrat.
-- Crédit d'Abyssal Garden (MIT) dans le README, pour les fonds marins seulement (fait dans le brouillon). Pas dans le
-  prompt.
-- Licence, GitHub Pages, captures du README : quand Vincent décide, si c'est une réussite technique.
+- **Présentation** (décision de Vincent, 18/11) : le README dit d'abord qu'on est parti de son moteur OpenG (pas encore
+  public), lui-même issu de FMeX (lien GitHub), travaillé depuis des années, LOD compris ; puis on assume l'IA et on
+  donne le prompt. Fait dans le README. Le prompt peut donc garder le nom d'OpenG (remplace l'ancienne idée d'un prompt
+  public sans OpenG). Lien FMeX à confirmer : `https://github.com/VincentGsell/FMeX`.
+- Crédit d'Abyssal Garden (MIT) : README, `LICENSES/abyssal-garden.txt`, notice en tête de `index.html` et de
+  `sh_sea.js`. Pas dans le prompt.
+- Reste à décider par Vincent : notre propre licence, le dépôt GitHub (public ou privé), GitHub Pages, de nouvelles
+  captures pour le README.
+- À tester ailleurs que sur la 5070 : une carte AMD, un portable Intel, un Mac, un navigateur sans WebGPU.
 
 ## Lots
 
