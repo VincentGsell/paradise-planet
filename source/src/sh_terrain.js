@@ -55,8 +55,8 @@ fn build(@builtin(workgroup_id) wg: vec3u, @builtin(local_invocation_index) li: 
 }
 `;
 
-// the patch as drawn: camera-relative centre and the parent's split distance, body-relative centre, slot / level /
-// cell / skirt depth
+// the patch as drawn: camera-relative centre and the parent's split distance, body-relative centre and the skirt
+// depth, slot / level / cell
 const W_TERRAIN_VS = /*wgsl*/`
 struct Patch { crel: vec4f, cbody: vec4f, info: vec4f };
 @group(1) @binding(0) var<storage, read> V: array<Vtx>;
@@ -74,7 +74,7 @@ fn terrainVertex(vi: u32, ii: u32) -> TV {
   let m = morph(length(pt.crel.xyz + v.p.xyz), pt.crel.w, F.nz2.w);
   var loc = v.p.xyz + v.d.xyz * m;
   let up = normalize(pt.cbody.xyz + loc);
-  if (v.n.z == 1u) { loc -= up * pt.info.w; }
+  if (v.n.z == 1u) { loc -= up * pt.cbody.w; }
   var o: TV;
   o.pos = pt.crel.xyz + loc;
   o.nrm = normalize(mix(octDec(v.n.x), octDec(v.n.y), m));

@@ -77,6 +77,12 @@ poissons, clairière dans le kelp), des stries d'altitude (bruit de détail éti
 5. prairie (pose 5) : roches presque noires, sol nu, herbe clairsemée ; sapins « en pagode » et trouées de lumière
    (pose 6).
 
+Fissures entre les patches (signalées par Vincent le 18/11, une capture de nuit vue de haut : des pointillés clairs le
+long des bords) : les jupes du terrain n'avaient jamais eu de profondeur depuis L1 (le shader lisait `info.w`, qui vaut
+0, au lieu de `cbody.w`). À travers les fissures, on voyait la mer qui passe sous les terres. Corrigé ; vérifié en
+marquant la mer vue au-dessus des terres pendant le vol scripté : les pointillés au ras du sol disparaissent. Reste
+le long des côtes basses, de loin, la mer qui affleure au-dessus d'un terrain grossier (lié au rivage en escalier).
+
 Restaient, selon la 3e passe :
 - nuages : bords encore en peigne ou en damier par endroits, plafond trop uniforme vu de dessous ;
 - coraux encore trop lisses (« gelée ») et caustiques parfois dentelées sur les parois ;
