@@ -1,7 +1,8 @@
 # Journal de Paradise Planet
 
 > Tenu par Claude, lot par lot. Contrat : `prompt.txt` (anglais) / `prompt.fr.txt`.
-> Règles de Vincent : git local, un commit par lot, jamais de push ; il juge la sensation en fenêtre.
+> Règles de Vincent : un commit par lot ; push vers `origin` (Gitea, RnD/paradise-planet) quand il le demande ; il juge
+> la sensation en fenêtre.
 
 ## À faire à la publication (pas avant)
 
@@ -82,6 +83,25 @@ long des bords) : les jupes du terrain n'avaient jamais eu de profondeur depuis 
 0, au lieu de `cbody.w`). À travers les fissures, on voyait la mer qui passe sous les terres. Corrigé ; vérifié en
 marquant la mer vue au-dessus des terres pendant le vol scripté : les pointillés au ras du sol disparaissent. Reste
 le long des côtes basses, de loin, la mer qui affleure au-dessus d'un terrain grossier (lié au rivage en escalier).
+
+### État au 18/11 au soir (Vincent)
+
+Tous les problèmes signalés sont réglés (clignotement des ombres, fissures entre patches). Les nuages restent un peu
+« bizarres » à son goût, déformés quand on fonce dedans, mais acceptés en l'état (piste si on y revient :
+l'accumulation sur plusieurs images recolle mal à grande vitesse ; la réduire quand la caméra va vite).
+
+**À traiter : un clignotement au fond de l'océan**, sur les poissons (souvent) et sur les plantes quand elles sont
+nombreuses. Vincent : « on dirait du z-fight ou du multi-paint sans attente de sync ». Pistes, non vérifiées :
+- z-fight peu probable : profondeur 32 bits flottante inversée (`depthCompare: 'greater'`), MSAA 4× en High/Medium ;
+- multi-paint sans sync : WebGPU exécute les passes dans l'ordre de la file, pas de course entre images ; seuls les
+  nuages accumulent d'une image à l'autre, et on ne les voit pas sous l'eau ;
+- plantes : les folioles sont découpées par un test d'alpha (`discard` sous 0,5, rayures `fract(x * 34)` dans
+  `sh_life.js`). Le MSAA ne lisse pas un test d'alpha : de loin, ces détails plus fins qu'un pixel scintillent. Remède
+  classique : alpha-to-coverage, ou estomper les rayures avec la distance ;
+- poissons : petits (quelques pixels de loin) avec un reflet spéculaire, ce qui scintille au moindre mouvement ;
+  vérifier aussi la lumière sous l'eau (caustiques, rayons) qui bouge sur eux ;
+- méthode : `tools/flicker.mjs` sur une vue fixe d'un banc de poissons, en coupant tour à tour caustiques, rayons,
+  spéculaire.
 
 Restaient, selon la 3e passe :
 - nuages : bords encore en peigne ou en damier par endroits, plafond trop uniforme vu de dessous ;
