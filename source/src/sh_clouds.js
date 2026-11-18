@@ -211,20 +211,24 @@ fn ign(p: vec2f, f: f32) -> f32 { let q = p + 5.588238 * f; return fract(52.9829
   t1 = min(t1, min(tScene, 60000.0));
   if (t1 <= t0) { return o; }
   let n = C.rot2.w;
-  let ds0 = clamp((t1 - t0) / n, 30.0, 600.0);
+  // fine steps inside the clouds (never more than 180 m: no terraces on the tops seen at grazing angles), big
+  // ones through the clear air, with a step back on entering a cloud
+  let ds0 = clamp((t1 - t0) / n, 20.0, 180.0);
   let jit = ign(fc.xy, C.dcam.w);
   var t = t0 + ds0 * jit;
+  var coarse = false;
   var T = 1.0; var L = vec3f(0.0); var tw = 0.0; var wsum = 0.0;
   let ct = dot(rd, F.sun.xyz);
   var ph: array<f32, 3>; var k = 1.0;
   for (var i = 0; i < 3; i++) { ph[i] = cPhase(ct, k); k *= 0.5; }
   let sig = C.layer.z;
   var ds = ds0;
-  for (var i = 0; i < 160; i++) {
+  for (var i = 0; i < 220; i++) {
     if (t >= t1 || T < 0.01) { break; }
     let p = cam + rd * t;
     let foot = t * F.misc.x * 2.0;
     let s = cloudAt(p, foot, false, 0.0);
+    if (s.d > 0.0 && coarse) { t -= ds * (1.0 - jit * 0.5); ds = ds0; coarse = false; continue; }
     if (s.d > 0.0) {
       let up = normalize(p); let hm = length(p) - F.pl.x;
       let od = lightOD(p, foot, ign(fc.xy + 7.0, C.dcam.w));
@@ -239,7 +243,7 @@ fn ign(p: vec2f, f: f32) -> f32 { let q = p + 5.588238 * f; return fract(52.9829
       tw += T * (1.0 - tr) * t; wsum += T * (1.0 - tr);
       T *= tr;
       ds = ds0;
-    } else { ds = min(ds * 1.3, ds0 * 3.0); }
+    } else { ds = min(ds * 1.4, ds0 * 5.0); coarse = ds > ds0 * 1.5; }
     t += ds;
   }
   o.c = vec4f(L, T);
@@ -273,7 +277,7 @@ struct MO { @location(0) c: vec4f, @location(1) t: vec4f };
       let h = textureSampleLevel(histC, sLin, uv, 0.0);
       let ht = textureSampleLevel(histT, sLin, uv, 0.0).x;
       let hc = clamp(h, lo - (hi - lo) * 0.25, hi + (hi - lo) * 0.25);
-      o.c = mix(c, hc, 0.9);
+      o.c = mix(c, hc, C.res.z);
       o.t = vec4f(mix(td, ht, select(0.9, 0.0, abs(ht - td) > td * 0.5)), 0.0, 0.0, 0.0);
     }
   }

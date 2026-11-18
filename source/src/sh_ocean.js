@@ -205,7 +205,8 @@ struct WO { @builtin(position) clip: vec4f, @location(0) rel: vec3f, @location(1
   let cd = O.mode.y; let gap = max(0.2 * abs(cd), O.waves.w);
   if (cd < 0.0) { hw = min(hw, -cd - gap + 0.3 * r); } else { hw = max(hw, -(cd - gap) - 0.3 * r); }
   rel += (O.ax.xyz * d.x + O.az.xyz * d.z) * sh.y + up * hw;
-  if (v.n.z == 1u && cd < 0.0) { rel -= up * (0.5 + 0.05 * pt.info.z); }
+  // no skirts on the sea: seen through the clear water they would hang as striped curtains (they collapse onto
+  // their edge, the terrain's skirts below close the gaps)
   var o: WO;
   o.clip = F.vp * vec4f(rel, 1.0); o.rel = rel; o.plane = plane; o.up = up; o.data = vec4f(h, hw, sh.x, f32(v.n.z));
   return o;

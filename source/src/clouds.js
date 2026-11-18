@@ -79,7 +79,7 @@ function cloudFrame() {
   if (cFirst) { PVP.set(FU.subarray(0, 16)); PCAM.set(CP); cFirst = false; }
   c.set(PVP, 16);
   c[32] = CP[0] - PCAM[0]; c[33] = CP[1] - PCAM[1]; c[34] = CP[2] - PCAM[2]; c[35] = frameN % 64;
-  c[36] = cW; c[37] = cH;
+  c[36] = cW; c[37] = cH; c[38] = URLQ.has('notaa') ? 0 : 0.9;
   Q.writeBuffer(uCloud, 0, CU);
   PVP.set(FU.subarray(0, 16)); PCAM.set(CP);
   // shadow map axes (Frame): sun-space x and y, half extent = the planet and its clouds

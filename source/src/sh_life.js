@@ -182,8 +182,8 @@ const TAUW = 6.2831853 / 38.0; // the gust pattern repeats every 76 m (the camer
   let foot = length(i.rel) * F.misc.x;
   let row = i.c.x;
   // root dark and green, tip light and golden in the tall meadows
-  let base = mix(vec3f(0.05, 0.11, 0.02), vec3f(0.035, 0.08, 0.02), i.c.z);
-  var tip = mix(vec3f(0.24, 0.36, 0.07), vec3f(0.42, 0.40, 0.12), i.c.y * 0.8);
+  let base = mix(vec3f(0.07, 0.14, 0.03), vec3f(0.05, 0.10, 0.025), i.c.z);
+  var tip = mix(vec3f(0.26, 0.38, 0.08), vec3f(0.44, 0.42, 0.13), i.c.y * 0.8);
   tip = mix(tip, tip * vec3f(1.2, 0.95, 0.7), i.c.w * 0.5);
   let alb = mix(base, tip, smoothstep(0.0, 0.9, row)) * (0.85 + 0.3 * detail(2u, i.rel, foot));
   let cs = cloudShadow(i.rel);

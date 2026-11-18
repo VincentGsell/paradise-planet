@@ -148,17 +148,33 @@ const POSES = [];
     const r = R + (abs !== undefined ? abs : upm > 0 ? max(g, 0) + upm : max(upm, g + 1.5));
     return [p[0] * r, p[1] * r, p[2] * r];
   };
-  const pose = (a, b, hour) => POSES.push([...a, ...b, hour]);
+  const pose = (a, b, hour, sun) => POSES.push([...a, ...b, hour, sun || 0]);
   pose(at(0, 0, 0, R * 2.6), at(0, 0, 0, 0), 9.5);                         // 1 orbit
   pose(at(-2600, -3800, 0, CBASE + CTHICK + 900), at(300, 900, 0, 0), 16.9);  // 2 high altitude, above the clouds
-  pose(at(-600, -900, 0, 520), at(800, 900, 0, 380), 16.8);                 // 3 the cloud layer
-  pose(at(-40, -20, 1.7), at(60, 140, 0, 0), 18.6);                         // 4 the beach, sunset
+  pose(at(-600, -900, 0, CBASE * 0.8), at(800, 900, 0, CBASE * 0.55), 16.8);   // 3 under the cloud layer
+  pose(at(-40, -20, 1.7), at(60, 140, 0, 0), 18.45, 1);                     // 4 the beach, facing the sunset
   pose(at(30, -260, 1.6), at(160, -500, 8), 10.5);                          // 5 meadow at eye level
-  pose(at(-200, -420, 2.2), at(-60, -700, 10), 8.2);                        // 6 forest edge
-  pose(at(20, 160, -6), at(60, 260, -9), 12.5);                             // 7 shallow reef
+  pose(at(-200, -420, 1.8), at(-60, -700, 10), 7.1, 1);                     // 6 forest edge, morning sun through the trees
+  pose(at(20, 160, -5), at(70, 300, -26), 12.5);                            // 7 shallow reef, looking down the slope
   pose(at(0, 420, -38), at(60, 520, -42), 13);                              // 8 garden at 40 m
 }
-const goPose = (i) => { const p = POSES[i]; lookAt(p[0], p[1], p[2], p[3], p[4], p[5]); setHour(p[6]); };
+// the scripted 60 s flight (dev.js): orbit -> above the clouds -> through them -> meadow -> beach -> dive
+const FLIGHT = [];
+{
+  const P = POSES, k = (t, p) => FLIGHT.push([t, p[0], p[1], p[2]]);
+  k(0, P[0]); k(9, P[1]); k(17, P[2]); k(27, [P[4][0], P[4][1], P[4][2]].map((v, i) => v + (P[2][i] - P[4][i]) * 0.25)); k(35, P[4]); k(42, P[5]); k(48, P[3]);
+  k(53, P[6]); k(60, P[7]); k(66, P[7]);
+}
+const goPose = (i) => {
+  const p = POSES[i]; lookAt(p[0], p[1], p[2], p[3], p[4], p[5]); setHour(p[6]);
+  if (p[7]) {
+    // face the low sun: its direction made horizontal at the camera, a little above the horizon
+    const r = v3len(CP, 0), ux = CP[0] / r, uy = CP[1] / r, uz = CP[2] / r, cd = cos(DECL);
+    let sx = cd * cos(sunPhi), sy = sin(DECL), sz = cd * sin(sunPhi); const k = sx * ux + sy * uy + sz * uz;
+    sx -= ux * k; sy -= uy * k; sz -= uz * k; const l = hypot(sx, sy, sz);
+    lookAt(CP[0], CP[1], CP[2], CP[0] + sx / l * 100 + ux * 6, CP[1] + sy / l * 100 + uy * 6, CP[2] + sz / l * 100 + uz * 6);
+  }
+};
 
 // ---------------------------------------------------------------- frame uniform
 const DSC = [900, 140, 23, 4.1];
@@ -300,7 +316,7 @@ function frame(now) {
   ftime += dt;
   simT += dt * SPEEDS[timeIdx];
   sunPhi -= dt * SPEEDS[timeIdx] / 86400 * TAU;
-  if (!menu) fly(dt); else idle(dt);
+  if (flightFn) flightFn(dt); else if (!menu) fly(dt); else idle(dt);
   render();
   if (hud) {
     hN++; if (dtr > hMax) hMax = dtr; hT += dtr / 1000;
@@ -308,7 +324,7 @@ function frame(now) {
   }
   if ((frameN & 15) === 0) clock();
 }
-let ftimeMs = 0, fixedRes = false;
+let ftimeMs = 0, fixedRes = false, flightFn = null;
 // behind the menu the camera drifts slowly along its view, high above the ground
 function idle(dt) { fly(0); }
 

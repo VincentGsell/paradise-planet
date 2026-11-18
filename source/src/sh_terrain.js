@@ -106,8 +106,8 @@ fn groundAlbedo(h: f32, n: vec3f, up: vec3f, rel: vec3f, foot: f32) -> vec3f {
   var land = mix(meadow, forest, smoothstep(0.52, 0.66, n0 + (n2 - 0.5) * 0.2) * (1.0 - smoothstep(0.35, 0.5, a)));
   let alpine = vec3f(0.17, 0.19, 0.09);
   land = mix(land, alpine, smoothstep(0.32, 0.48, a));
-  let rock = mix(vec3f(0.30, 0.27, 0.24), vec3f(0.42, 0.40, 0.37), n2) * (0.85 + 0.3 * n3);
-  land = mix(land, rock, smoothstep(0.42, 0.62, slope + (n2 - 0.5) * 0.25) );
+  let rock = mix(vec3f(0.17, 0.155, 0.14), vec3f(0.26, 0.245, 0.23), n2) * (0.8 + 0.35 * n3);
+  land = mix(land, rock, smoothstep(0.45, 0.7, slope + (n2 - 0.5) * 0.25));
   land = mix(land, rock, smoothstep(0.55, 0.7, a));
   let snow = vec3f(0.85, 0.88, 0.92);
   land = mix(land, snow, smoothstep(0.78, 0.84, a + c * 0.06 - 0.06) * smoothstep(0.75, 0.9, c));
