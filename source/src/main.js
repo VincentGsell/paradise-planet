@@ -16,6 +16,8 @@ const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater, bglOcean), { blen
 const mGrass = mod(W_LIFE + W_GRASS_DRAW), layGrass = lay(bgl0, bglTerr, bglLife, bglRead);
 const pGrass = scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
 const pFlower = scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
+const mProps = mod(W_LIFE + W_PROPS_DRAW);
+const pProps = scenePipe(mProps, 'vs', 'fs', layGrass, { buffers: [vlProps] });
 const mBlit = mod(W_BLIT);
 const bglBlit = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: {} }, { binding: 1, visibility: SS.FRAGMENT, sampler: {} }] });
 const blitPipe = (e, add) => device.createRenderPipeline({ layout: lay(bglBlit), vertex: { module: mBlit, entryPoint: 'vs' },
@@ -211,15 +213,17 @@ function render() {
   const c = e.beginComputePass(slot ? cpTS : undefined);
   c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end();
   lastDraw = lodUpdate(e, BUILDS);
-  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e);
+  oceanFrame(); waves(e); cloudFrame(); cloudPasses(e); grassPass(e); propsPass(e);
   let r = e.beginRenderPass(passScene);
   r.setBindGroup(0, bg0); r.setBindGroup(2, bgOcean);
   r.setPipeline(pTerrain); r.setBindGroup(1, bgTerr); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, lastDraw);
   r.setBindGroup(2, bgLife);
   r.setPipeline(pGrass); r.setBindGroup(3, bgGrassR); r.drawIndirect(bGArgs, 0);
   r.setPipeline(pFlower); r.setBindGroup(3, bgFlowerR); r.drawIndirect(bGArgs, 16);
+  r.setPipeline(pProps); r.setBindGroup(2, LS_TREE[2]); r.setVertexBuffer(0, vbProps); r.setIndexBuffer(ibProps, 'uint32');
+  for (let b = 0; b < NBK; b++) { r.setBindGroup(3, bgPropsR[b]); r.drawIndexedIndirect(bPArgs, b * 20); }
   r.setBindGroup(2, bgOcean);
-  r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.drawIndexed(NIDX, nWater);
+  r.setPipeline(pSurf); r.setBindGroup(1, bgWater); r.setIndexBuffer(ibPatch, 'uint16'); r.drawIndexed(NIDX, nWater);
   r.end();
   cloudMarch(e);
   r = e.beginRenderPass(passComp); r.setPipeline(pComp); r.setBindGroup(0, bg0); r.setBindGroup(1, bgComp[cPing]); r.setBindGroup(2, bgOcean); r.draw(3); r.end();

@@ -223,3 +223,147 @@ const PETALS = array<vec3f, 6>(vec3f(0.92, 0.9, 0.85), vec3f(0.95, 0.75, 0.08), 
   return vec4f(alb * (sun * ndl / PI + sky / PI), 1.0);
 }
 `;
+
+// ---- trees, palms, bushes, rocks: placement into (kind, LOD) buckets, each with its indirect draw
+// kinds: 0 broadleaf, 1 conifer, 2 palm, 3 bush, 4 rock
+const NKIND = 5, NLOD = 3, BCAP = [[3072, 14336, 49152], [1536, 8192, 24576], [768, 4096, 12288]][LV];
+const W_PROPS_CS = /*wgsl*/`
+struct Inst { a: vec4f, b: vec4u };
+struct DA { n: u32, count: atomic<u32>, first: u32, base: i32, inst: u32 };
+@group(3) @binding(0) var<storage, read_write> IN: array<Inst>;
+@group(3) @binding(1) var<storage, read_write> DARGS: array<DA, ${NKIND * NLOD}>;
+@group(3) @binding(2) var<storage, read> BASE: array<u32, ${NKIND * NLOD}>;
+override LAYER: u32 = 0u;
+const CAP = array<u32, 3>(${BCAP[0]}u, ${BCAP[1]}u, ${BCAP[2]}u);
+fn emit(kind: u32, g: Ground, d: f32, scale: f32, extra: u32) {
+  let lodk = select(1.0, 0.75, F.misc.z > 1.5);
+  let lod = select(select(2u, 1u, d < 320.0 * lodk), 0u, d < 70.0 * lodk);
+  let b = kind * 3u + lod;
+  let i = atomicAdd(&DARGS[b].count, 1u);
+  if (i >= CAP[lod]) { return; }
+  IN[BASE[b] + i] = Inst(vec4f(g.rel, scale), vec4u(octEnc(g.up), g.hash, extra, octEnc(g.n)));
+}
+@compute @workgroup_size(64) fn main(@builtin(workgroup_id) w: vec3u, @builtin(local_invocation_index) li: u32) {
+  let g = ground(w.x + w.y * 65535u, li, u32(LF.k2.w));
+  if (!g.ok || g.h < 0.3) { return; }
+  let d = length(g.rel);
+  let RAD = select(LF.k.w, LF.k2.x, LAYER == 0u);
+  if (d > RAD) { return; }
+  let b = biome(g.h, g.n, g.up, g.rel);
+  let r = rnd(g.hash, 3u);
+  let a = g.h / F.pl.z + (detail(0u, g.rel, 0.0) - 0.5) * 0.08;
+  let c = clamp(dot(g.n, g.up), 0.0, 1.0);
+  // fade the far edge: the farthest ones shrink into the ground (no pop)
+  let edge = smoothstep(RAD, RAD * 0.85, d);
+  if (LAYER == 0u) {
+    let conif = smoothstep(0.2, 0.34, a);
+    let pB = (b.y * 0.62 + b.x * 0.03) * (1.0 - conif);
+    let pC = (b.y * 0.62 + b.x * 0.02) * conif;
+    // palms on the sandy shores and just behind them
+    let palmZone = smoothstep(0.7, 1.4, g.h) * (1.0 - smoothstep(5.0, 12.0, g.h)) * smoothstep(0.75, 0.9, c);
+    let pP = palmZone * 0.16;
+    var kind = 99u; var s = 0.0;
+    if (r < pB) { kind = 0u; s = mix(7.0, 13.0, rnd(g.hash, 4u)); }
+    else if (r < pB + pC) { kind = 1u; s = mix(8.0, 17.0, rnd(g.hash, 4u)); }
+    else if (r < pB + pC + pP) { kind = 2u; s = mix(6.0, 10.5, rnd(g.hash, 4u)); }
+    if (kind == 99u || !inView(g.rel + g.up * s * 0.5, s * 0.8)) { return; }
+    emit(kind, g, d, s * edge, 0u);
+  } else {
+    let pBush = b.x * 0.05 + b.y * 0.22;
+    let pRock = b.w * 0.3 + b.z * 0.012 + b.x * 0.006;
+    var kind = 99u; var s = 0.0;
+    if (r < pBush) { kind = 3u; s = mix(0.8, 2.0, rnd(g.hash, 4u)); }
+    else if (r < pBush + pRock) { kind = 4u; s = mix(0.35, 1.6, pow(rnd(g.hash, 4u), 2.0)) * (1.0 + 2.2 * b.w * step(0.93, rnd(g.hash, 5u))); }
+    if (kind == 99u || !inView(g.rel, s * 1.5)) { return; }
+    emit(kind, g, d, s * edge, 0u);
+  }
+}
+@compute @workgroup_size(${NKIND * NLOD}) fn fin(@builtin(local_invocation_index) i: u32) {
+  atomicStore(&DARGS[i].count, min(atomicLoad(&DARGS[i].count), CAP[i % 3u]));
+}
+`;
+
+// ---- drawing them: one vertex format (position, normal + sway, uv, tint + kind), wind, procedural leaf cards
+const W_PROPS_DRAW = /*wgsl*/`
+struct Inst { a: vec4f, b: vec4u };
+@group(3) @binding(0) var<storage, read> IN: array<Inst>;
+struct VI { @location(0) p: vec3f, @location(1) n: vec4f, @location(2) uv: vec2f, @location(3) m: vec4f };
+struct PO { @builtin(position) clip: vec4f, @location(0) rel: vec3f, @location(1) n: vec3f, @location(2) up: vec3f, @location(3) uv: vec2f, @location(4) m: vec4f, @location(5) @interpolate(flat) h: u32 };
+fn wind3(rel: vec3f) -> f32 {
+  let x = dot(rel, LF.wind.xyz) + LF.gust.y;
+  return 0.5 + 0.5 * sin(x * 6.2831853 / 38.0 - LF.gust.x * 1.7) * sin(x * 6.2831853 / 76.0 - LF.gust.x * 0.6);
+}
+@vertex fn vs(v: VI, @builtin(instance_index) ii: u32) -> PO {
+  let it = IN[ii];
+  let up = octDec(it.b.x); let h = it.b.y; let s = it.a.w;
+  let yaw = rnd(h, 11u) * 6.2831853;
+  let t0 = normalize(cross(up, vec3f(0.31, 0.83, 0.47))); let b0 = cross(up, t0);
+  let tx = t0 * cos(yaw) + b0 * sin(yaw); let tz = cross(tx, up);
+  let kind = u32(v.m.w * 255.0 + 0.5);
+  var lp = v.p;
+  // wind: the whole plant bends with the gusts (more at the top), leaves flutter
+  let g = wind3(it.a.xyz);
+  let sway = v.n.w * v.n.w;
+  let ph = rnd(h, 12u) * 6.28 + dot(v.p, vec3f(3.1, 2.3, 4.7));
+  let flutter = select(0.0, 0.012, kind == 1u || kind == 2u || kind == 3u) * sin(LF.gust.x * 5.3 + ph);
+  let bend = (LF.wind.w / 8.0) * (0.015 + 0.035 * g) * sway;
+  var p = it.a.xyz + (tx * lp.x + up * lp.y + tz * lp.z) * s;
+  p += (LF.wind.xyz * bend + (tx * cos(ph) + tz * sin(ph)) * flutter) * s;
+  var o: PO;
+  o.clip = F.vp * vec4f(p, 1.0); o.rel = p;
+  o.n = normalize(tx * v.n.x + up * v.n.y + tz * v.n.z);
+  o.up = up; o.uv = v.uv; o.m = v.m; o.h = h;
+  return o;
+}
+// a cluster of leaves on a card (uv 0..1): a few overlapping ellipses
+fn leaves(uv: vec2f, h: f32) -> f32 {
+  var a = 0.0;
+  for (var i = 0; i < 6; i++) {
+    let fi = f32(i);
+    let c = vec2f(0.5) + vec2f(cos(fi * 2.4 + h), sin(fi * 2.4 + h)) * (0.12 + 0.2 * fract(fi * 0.618 + h));
+    let an = fi * 1.7 + h * 3.0;
+    var q = uv - c; q = vec2f(q.x * cos(an) - q.y * sin(an), q.x * sin(an) + q.y * cos(an));
+    a = max(a, 1.0 - length(q / vec2f(0.2, 0.11)));
+  }
+  return a;
+}
+@fragment fn fs(i: PO, @builtin(front_facing) ff: bool) -> @location(0) vec4f {
+  let kind = u32(i.m.w * 255.0 + 0.5);
+  let up = normalize(i.up);
+  var n = normalize(i.n);
+  var alpha = 1.0;
+  let hv = f32(i.h % 997u) / 997.0;
+  var alb = i.m.rgb;
+  var trans = 0.0;
+  if (kind == 1u || kind == 3u) { // leaf cards (broadleaf, bush)
+    alpha = leaves(i.uv, hv * 6.28) * 3.0;
+    trans = 0.5;
+  } else if (kind == 2u) { // needles: a star of thin strokes
+    let q = i.uv - 0.5; let r = length(q) * 2.0; let an = atan2(q.y, q.x);
+    alpha = (1.0 - r) * 2.0 * (0.4 + 0.6 * smoothstep(0.3, 0.9, abs(sin(an * 7.0 + hv * 6.0))));
+    trans = 0.3;
+  } else if (kind == 5u) { // palm frond: a comb of leaflets along the rachis
+    let x = i.uv.x; let y = abs(i.uv.y - 0.5) * 2.0;
+    let leaflet = smoothstep(0.82, 0.62, fract(x * 34.0 + y * 2.2));
+    let wid = sin(min(x, 0.98) * 3.14159) * 0.95 + 0.05;
+    alpha = select(leaflet * (1.0 - smoothstep(wid - 0.08, wid, y)) * 3.0, 1.0, y < 0.06) ;
+    trans = 0.45;
+  }
+  if (kind != 0u && kind != 4u && kind != 6u) {
+    if (!ff) { n = -n; }
+  }
+  if (alpha < 0.5) { discard; }
+  // tint variation per plant
+  alb *= 0.85 + 0.3 * fract(hv * 7.31);
+  let foot = length(i.rel) * F.misc.x;
+  if (kind == 4u) { alb *= 0.8 + 0.4 * detail(3u, i.rel, foot); }
+  let cs = cloudShadow(i.rel);
+  let sun = sunAt(up, 2.0) * cs.x; let sky = skyIrr(up, 2.0) * (0.45 + 0.55 * cs.y);
+  let l = F.sun.xyz;
+  let ndl = max(dot(n, l), 0.0);
+  let back = pow(max(dot(normalize(-i.rel), -l), 0.0), 4.0) * trans + max(-dot(n, l), 0.0) * trans * 0.5;
+  let ao = i.m.a * 0.0 + clamp(0.35 + 0.65 * (dot(n, up) * 0.5 + 0.5), 0.0, 1.0);
+  let col = alb * (sun * (ndl + back) / PI + sky / PI * ao);
+  return vec4f(col, 1.0);
+}
+`;
