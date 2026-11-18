@@ -11,7 +11,7 @@ LV = SV[0] ? +SV[0] : mob ? (mem > 7 ? 1 : 2) : mem <= 4 ? 2 : 0;
 if (bad && LV < 2) { SV = [++LV]; keep('paradise', LV); }
 // planet diameter (km), from the menu; ?km= in the address wins (tests, links)
 const URLQ = new URLSearchParams(location.search);
-let DIAM = +URLQ.get('km') || +SV[2] || 30;
+let DIAM = +URLQ.get('km') || +SV[2] || 10;
 DIAM = DIAM < 10 ? 10 : DIAM > 50 ? 50 : DIAM | 0;
 if (URLQ.get('q')) LV = +URLQ.get('q');
 // what each level spends

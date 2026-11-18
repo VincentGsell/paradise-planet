@@ -379,7 +379,7 @@ function frame(now) {
   ftime += dt;
   simT += dt * SPEEDS[timeIdx];
   sunPhi -= dt * SPEEDS[timeIdx] / 86400 * TAU;
-  if (flightFn) flightFn(dt); else if (!menu) fly(dt); else idle(dt);
+  if (flightFn && flightFn(dt)) { /* the scripted flight (dev.html) */ } else if (introT >= 0) introStep(dt); else if (!menu) fly(dt); else idle(dt);
   render();
   if (hud) {
     hN++; if (dtr > hMax) hMax = dtr; hT += dtr / 1000;
@@ -392,36 +392,120 @@ let ftimeMs = 0, fixedRes = false, flightFn = null;
 function idle(dt) { fly(0); }
 
 // ---------------------------------------------------------------- the clock and the pace of time
-let lastClock = '';
+// (in the menu; while flying, a short note when the pace changes)
+let lastClock = '', noteT = 0;
+const paceTxt = () => timeIdx ? '×' + SPEEDS[timeIdx] : 'paused';
 function clock() {
   const h = localHour(), hh = floor(h), mm = floor((h - hh) * 60);
-  const s = `${hh < 10 ? '0' : ''}${hh}:${mm < 10 ? '0' : ''}${mm} · ${timeIdx ? '×' + SPEEDS[timeIdx] : 'paused'}`;
+  const s = `${hh < 10 ? '0' : ''}${hh}:${mm < 10 ? '0' : ''}${mm} · ${paceTxt()}`;
   if (s !== lastClock) { $('tc').textContent = s; lastClock = s; }
 }
-const pace = (d) => { timeIdx = d === 0 ? (timeIdx ? 0 : 3) : clamp(timeIdx + d, 0, SPEEDS.length - 1); clock(); };
+const pace = (d) => {
+  timeIdx = d === 0 ? (timeIdx ? 0 : 3) : clamp(timeIdx + d, 0, SPEEDS.length - 1); clock();
+  if (!menu) { const t = $('t'); t.textContent = 'Time ' + paceTxt(); t.className = 'on'; clearTimeout(noteT); noteT = setTimeout(() => { t.className = ''; }, 1200); }
+};
 $('tt').onclick = () => pace(1); $('tg').onclick = () => pace(-1);
+
+// ---------------------------------------------------------------- keys
+// Bound by their place on the keyboard (KeyboardEvent.code), so W A S D are Z Q S D on a French keyboard; the labels
+// show what is printed on the player's own keys (the keyboard layout map, or what the keys typed so far). A click on
+// a key in the menu binds that action to the next key pressed.
+const ACT = { f: 'KeyW', b: 'KeyS', l: 'KeyA', r: 'KeyD', d: 'KeyQ', u: 'KeyE', s: 'ShiftLeft', tf: 'KeyT', ts: 'KeyG', tp: 'KeyP', h: 'KeyH' };
+const BIND = { ...ACT };
+try { Object.assign(BIND, JSON.parse(localStorage.paradiseKeys || '{}')); } catch {}
+let byCode = {};
+const rebind = () => { byCode = {}; for (const a in BIND) byCode[BIND[a]] = a; if (BIND.s === 'ShiftLeft') byCode.ShiftRight = 's'; };
+rebind();
+const LAB = {};
+const NAMES = { ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt', Space: 'Space', Tab: 'Tab',
+  Enter: 'Enter', Backspace: '⌫', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', CapsLock: 'Caps' };
+const label = (c) => NAMES[c] || LAB[c] || c.replace(/^(Key|Digit|Numpad)/, '');
+const KROWS = [['Fly', 'f', 'l', 'b', 'r'], ['Down / up', 'd', 'u'], ['Faster', 's'], ['Viewpoints', '1–8'], ['Time ±', 'tf', 'ts'], ['Pause time', 'tp'], ['Menu', 'Esc'], ['Stats', 'h']];
+let waitKey = null;
+function keyList() {
+  let h = '';
+  for (const [name, ...ks] of KROWS) {
+    h += '<i>' + ks.map((k) => BIND[k] ? `<b data-a=${k}${waitKey === k ? ' class=wt' : ''}>${waitKey === k ? '…' : label(BIND[k])}</b>` : `<kbd>${k}</kbd>`).join('') + `</i><span>${name}</span>`;
+  }
+  $('k').innerHTML = h + '<button id=kr>Default keys</button>';
+  $('kr').onclick = () => { Object.assign(BIND, ACT); keep('paradiseKeys', ''); waitKey = null; rebind(); keyList(); };
+}
+$('k').addEventListener('click', (e) => { const a = e.target.dataset && e.target.dataset.a; if (a) { waitKey = waitKey === a ? null : a; keyList(); } });
+try { navigator.keyboard.getLayoutMap().then((m) => { m.forEach((v, c) => { LAB[c] = v.toUpperCase(); }); keyList(); }).catch(() => 0); } catch {}
+keyList();
 
 // ---------------------------------------------------------------- input
 const key = (e, v) => {
-  switch (e.code) {
-    case 'KeyW': kf = v; break; case 'KeyS': kb = v; break; case 'KeyA': kl = v; break; case 'KeyD': kr = v; break;
-    case 'KeyE': ku = v; break; case 'KeyQ': kd = v; break; case 'ShiftLeft': case 'ShiftRight': ks = v; break;
+  const a = byCode[e.code];
+  switch (a) {
+    case 'f': kf = v; break; case 'b': kb = v; break; case 'l': kl = v; break; case 'r': kr = v; break;
+    case 'u': ku = v; break; case 'd': kd = v; break; case 's': ks = v; break;
     default: if (v && !e.repeat) {
-      if (e.code === 'KeyH') { hud = !hud; info.textContent = ''; }
-      else if (e.code === 'KeyT') pace(1); else if (e.code === 'KeyG') pace(-1); else if (e.code === 'KeyP') pace(0);
+      if (a === 'h') { hud = !hud; info.textContent = ''; }
+      else if (a === 'tf') pace(1); else if (a === 'ts') pace(-1); else if (a === 'tp') pace(0);
       else if (e.code === 'Escape') ui(true);
-      else if (e.code >= 'Digit1' && e.code <= 'Digit8') goPose(e.code.charCodeAt(5) - 49);
+      else if (e.code >= 'Digit1' && e.code <= 'Digit8') { introT = -1; goPose(e.code.charCodeAt(5) - 49); }
     }
   }
 };
-addEventListener('keydown', (e) => { if (menu && e.code !== 'KeyH') return; key(e, 1); });
+addEventListener('keydown', (e) => {
+  // learn what the keys print (browsers without a layout map)
+  if (e.key && e.key.length === 1 && e.code && !LAB[e.code]) { LAB[e.code] = e.key.toUpperCase(); if (menu && !waitKey) keyList(); }
+  if (waitKey) {
+    e.preventDefault();
+    if (e.code !== 'Escape') {
+      const old = byCode[e.code]; if (old && old !== waitKey) BIND[old] = BIND[waitKey]; // a key already taken: swap them
+      BIND[waitKey] = e.code; keep('paradiseKeys', JSON.stringify(BIND)); rebind();
+    }
+    waitKey = null; keyList(); return;
+  }
+  // in the menu only the stats and the pace of time answer
+  if (menu) { const a = byCode[e.code]; if (a === 'h' || a === 'tf' || a === 'ts' || a === 'tp') key(e, 1); return; }
+  key(e, 1);
+});
 addEventListener('keyup', (e) => key(e, 0));
 addEventListener('wheel', (e) => { if (!menu) speedMul = clamp(speedMul * (e.deltaY > 0 ? 0.8 : 1.25), 0.05, 20); }, { passive: true });
 const release = () => { kf = kb = kl = kr = ku = kd = ks = 0; };
 const capture = () => { const p = canvas.requestPointerLock({ unadjustedMovement: true }); if (p && p.catch) p.catch(() => canvas.requestPointerLock()).catch(() => 0); };
-canvas.addEventListener('click', capture);
+canvas.addEventListener('click', () => { if (!menu) capture(); });
 addEventListener('mousemove', (e) => { if (document.pointerLockElement === canvas) { mdx += e.movementX; mdy += e.movementY; } });
 addEventListener('blur', release);
+
+// ---------------------------------------------------------------- the arrival: from orbit down to the beach
+// The camera falls from two radii up to the beach of viewpoint 4, the planet turning under it: the way along the
+// ground ends first, the height comes down on a log scale (slow at the end), the gaze rises from the planet to the
+// horizon. Fly takes over wherever the camera is.
+const IDUR = 17, IP0 = new Float64Array(3), IP1 = new Float64Array(3), IF1 = new Float64Array(3), ID = new Float64Array(3);
+let introT = -1, iH0 = 0, iH1 = 0;
+function introStart() {
+  goPose(3); IP1.set(CP); IF1.set(CB.subarray(0, 3));
+  setHour(POSES[3][6] - 0.4 - IDUR * SPEEDS[timeIdx] / 3600); // the golden hour when the camera lands
+  const r1 = v3len(IP1, 0);
+  // the way in: from out over the sea, a little to the side
+  for (let c = 0; c < 3; c++) IP0[c] = IP1[c] / r1 + IF1[c] * 0.55 + CB[6 + c] * 0.3;
+  v3norm(IP0, 0);
+  iH0 = log(2.2 * R); iH1 = log(max(r1 - R - max(groundAt(IP1[0], IP1[1], IP1[2]), 0), 1.5)); introT = 0;
+  introStep(0);
+}
+const smoother = (x) => { x = clamp(x, 0, 1); return x * x * x * (x * (x * 6 - 15) + 10); };
+function introStep(dt) {
+  introT += dt / IDUR;
+  const t = min(introT, 1), e1 = smoother(t / 0.72), e2 = pow(smoother(t), 1.5), w = smoother((t - 0.3) / 0.62);
+  // the direction: a slerp from IP0 to the beach
+  const r1 = v3len(IP1, 0); for (let c = 0; c < 3; c++) ID[c] = IP1[c] / r1;
+  const om = acos(clamp(v3dot(IP0, 0, ID, 0), -1, 1)), so = sin(om) || 1;
+  const a = sin((1 - e1) * om) / so, b = sin(e1 * om) / so;
+  for (let c = 0; c < 3; c++) ID[c] = IP0[c] * a + ID[c] * b;
+  v3norm(ID, 0);
+  const g = max(groundAt(ID[0], ID[1], ID[2]), 0), alt = max(exp(mix(iH0, iH1, e2)), 1.5), r = R + g + alt;
+  for (let c = 0; c < 3; c++) CP[c] = ID[c] * r;
+  // the gaze: down at the planet, then up to the final view
+  const k = 0.05 + 0.95 * w;
+  for (let c = 0; c < 3; c++) TMP[c] = -ID[c] * (1 - k) + IF1[c] * k;
+  v3norm(TMP, 0);
+  lookAt(CP[0], CP[1], CP[2], CP[0] + TMP[0] * 100, CP[1] + TMP[1] * 100, CP[2] + TMP[2] * 100);
+  if (introT >= 1) introT = -1;
+}
 
 // ---------------------------------------------------------------- menu
 let menu = true;
@@ -429,15 +513,15 @@ const bFly = $('d');
 const ui = (m) => {
   if (dead) return;
   menu = m; body.className = m ? 'm' : document.pointerLockElement ? 'g p' : 'g';
-  if (m) { release(); setTimeout(() => menu && bFly.focus(), 100); } else document.activeElement.blur();
+  if (m) { release(); waitKey = null; keyList(); clock(); $('t').className = ''; setTimeout(() => menu && bFly.focus(), 100); } else document.activeElement.blur();
 };
-const go = () => { ui(false); bFly.textContent = 'Resume'; if (!mob) capture(); };
+const go = () => { introT = -1; CV.fill(0); ui(false); bFly.textContent = 'Resume'; if (!mob) capture(); };
 bFly.onclick = go; $('o').onclick = () => ui(true);
 $('q').querySelectorAll('button').forEach((b, i) => { if (i === 2 - LV) b.className = 'on'; else b.onclick = () => { keep('paradise', [2 - i, '', DIAM]); location.reload(); }; });
 const rng = $('r'); rng.value = DIAM; $('y').textContent = DIAM + ' km';
 rng.oninput = () => { $('y').textContent = rng.value + ' km'; };
 rng.onchange = () => { if (+rng.value !== DIAM) { keep('paradise', [LV, '', rng.value]); location.reload(); } };
-document.addEventListener('pointerlockchange', () => ui(!document.pointerLockElement));
+document.addEventListener('pointerlockchange', () => { if (document.pointerLockElement) { if (!menu) body.className = 'g p'; } else if (!menu) ui(true); });
 
 // ---------------------------------------------------------------- start
 await say('Lighting the sky…', 0.3, 300);
@@ -453,5 +537,6 @@ for (let i = 0; i < 60; i++) { render(); if ((i & 7) === 7) await Q.onSubmittedW
 await say('Here comes the sun…', 1, 300);
 await Q.onSubmittedWorkDone();
 setTimeout(keep, 15e3, 'paradiseLoad', '');
+if (!URLQ.has('shot') && !URLQ.has('pose')) introStart();
 ui(true);
 requestAnimationFrame((t) => { ftimeMs = t; requestAnimationFrame(frame); });

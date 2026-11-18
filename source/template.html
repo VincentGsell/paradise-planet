@@ -7,136 +7,131 @@
 <meta name=theme-color content=#0a1a2e>
 <style>
 /* The class on <body> is the state of the page:
-   l = loading, m = menu, g = in the world (g p while the mouse is captured), l e = failed to start */
+   l = loading, m = menu (the world goes on behind the medallion), g = flying (g p while the mouse is captured),
+   l e = failed to start */
 html { background: #0a1a2e; }
 body {
   position: fixed; top: 0; left: 0; width: 100%; height: 100%; margin: 0; overflow: hidden;
-  background: radial-gradient(#1d4a6e, #0a1a2e 70%);
-  font: 700 clamp(13px, .7vw + .9vh, 36px)/1.4 system-ui, sans-serif; color: #fff8ea;
+  background: radial-gradient(circle at 70% 60%, #24577a, #0a1a2e 70%);
+  font: 700 clamp(12px, .62vw + .8vh, 32px)/1.4 system-ui, sans-serif; color: #fff8ea;
   -webkit-user-select: none; user-select: none;
 }
 @media (orientation: portrait) and (pointer: coarse) {
   body { width: 100dvh; height: 100dvw; transform-origin: 0 0; transform: rotate(90deg) translateY(-100%); }
 }
-/* the world: blurred and dimmed behind the menu, comes into focus when you fly */
-canvas {
-  position: absolute; width: 100%; height: 100%; touch-action: none; cursor: crosshair;
-  transition: filter 1s, transform 1s, opacity 2s;
-}
-body:not(.g) canvas { filter: blur(.7vmax) brightness(.6); transform: scale(1.04); }
+canvas { position: absolute; width: 100%; height: 100%; touch-action: none; cursor: crosshair; transition: opacity 2.5s; }
 .l canvas { opacity: 0; }
-#m {
-  position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: min(2em, 5vmin);
-  padding: 1em 1em 3em; text-align: center; background: radial-gradient(#0a1a2e00 30%, #0a1a2ecc);
-  transition: opacity .5s, visibility .5s;
-}
-.g #m, .m #l, .l #g { opacity: 0; visibility: hidden; }
-h1 {
-  margin: 0; font: 900 4.4em/1 system-ui, sans-serif; letter-spacing: .05em; text-transform: uppercase;
-  color: #0000; background: linear-gradient(#fffdf4 20%, #ffd98a 55%, #ff9d5c);
-  -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 .06em .2em #000c);
-}
 p { margin: 0; }
-#a { display: grid; width: 27em; max-width: 100%; }
+/* the title, top left: whose world, and its name */
+#hd { position: absolute; top: 1.4em; left: 1.8em; pointer-events: none; transition: opacity 1s, transform 1s; }
+#hd:before {
+  content: ''; position: absolute; z-index: -1; inset: -3em -6em -2.5em -4em; border-radius: 50%;
+  background: radial-gradient(closest-side, #0a1a2e8c, #0a1a2e00);
+}
+#hd small {
+  display: block; margin-left: .2em; font-size: .95em; letter-spacing: .32em; text-transform: uppercase; color: #ffd98a;
+  text-shadow: 0 1px 6px #000a;
+}
+#hd h1 {
+  margin: .05em 0 0; font: italic 900 3.6em/1 Georgia, 'Times New Roman', serif; letter-spacing: .01em;
+  color: #0000; background: linear-gradient(100deg, #fffdf4 10%, #ffe0a0 45%, #ff9d5c 75%, #ff6f7d);
+  -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 .05em .18em #000b);
+}
+.g #hd { opacity: 0; transform: translateY(-.6em); }
+/* the medallion: the menu, floating over the world */
+#m {
+  position: absolute; top: 50%; right: 2.4em; width: 23em; max-width: calc(100% - 3em); max-height: calc(100% - 4em);
+  box-sizing: border-box; padding: 3.6em 1.6em 1.4em; display: grid; gap: .9em; justify-items: stretch; text-align: center;
+  border-radius: 2.4em; background: linear-gradient(165deg, #ff9d5c33, #0a1a2ed9 38%, #0a1a2ef2);
+  box-shadow: inset 0 0 0 2px #ffd98a8c, inset 0 0 2.5em #ff9d5c26, 0 1em 3em #000a, 0 0 4em #ff9d5c33;
+  -webkit-backdrop-filter: blur(14px) saturate(1.3); backdrop-filter: blur(14px) saturate(1.3);
+  transform: translateY(-50%); transition: opacity .6s, visibility .6s, transform .6s;
+}
+.g #m { opacity: 0; visibility: hidden; transform: translateY(-50%) translateX(2em) scale(.96); }
+/* the emblem on its rim: a little planet in its halo of air */
+#m:before {
+  content: ''; position: absolute; top: -2.6em; left: 50%; width: 5.2em; height: 5.2em; margin-left: -2.6em; border-radius: 50%;
+  background: radial-gradient(circle at 30% 26%, #fffb 0, #fff0 18%),
+    radial-gradient(ellipse 26% 16% at 60% 40%, #74c46d 60%, #0000 100%), radial-gradient(ellipse 14% 22% at 42% 62%, #5fae63 55%, #0000 100%),
+    radial-gradient(ellipse 18% 9% at 66% 66%, #e8d7a2 50%, #0000 100%), radial-gradient(ellipse 22% 12% at 34% 36%, #5aa865 55%, #0000 100%),
+    radial-gradient(circle at 75% 78%, #0000 40%, #04122a99 75%), radial-gradient(circle at 40% 35%, #4cb4d8, #1b6aa0 55%, #0b2a4e);
+  box-shadow: 0 0 0 .22em #ffd98a, 0 0 0 .5em #ff9d5c40, 0 0 2.4em #7fd3ff99, inset -.6em -.5em 1em #0008;
+}
+#a { display: grid; }
 #a > * { grid-area: 1/1; transition: opacity .8s, visibility .8s; }
-#s, #w, #q, #z, #k, #h { font-size: .8em; letter-spacing: .12em; text-transform: uppercase; }
-#w { margin-top: 1.2em; color: #ffd98a; text-wrap: balance; }
-#p {
-  height: .5em; margin: .4em 0 1em; overflow: hidden; border-radius: 1em; background: #0a1a2e;
-  box-shadow: 0 0 0 2px #ffd98a80, 0 0 1.5em #ff9d5c80;
-}
-#b {
-  display: block; height: 100%; background: linear-gradient(90deg, #ff9d5c, #ffe9b8);
-  transform: scaleX(0); transform-origin: 0; will-change: transform;
-}
+.m #l, .g #l, .l #g { opacity: 0; visibility: hidden; }
+#s, #w, .lb { font-size: .78em; letter-spacing: .14em; text-transform: uppercase; }
+#w { margin-top: 1em; color: #ffd98a; text-wrap: balance; }
+#p { height: .5em; margin: .6em 0 1em; overflow: hidden; border-radius: 1em; background: #0a1a2e; box-shadow: 0 0 0 2px #ffd98a80, 0 0 1.5em #ff9d5c80; }
+#b { display: block; height: 100%; background: linear-gradient(90deg, #ff9d5c, #ffe9b8); transform: scaleX(0); transform-origin: 0; will-change: transform; }
 .e #p { visibility: hidden; }
 .e #s { font-size: 1.1em; letter-spacing: 0; text-transform: none; }
+#g { display: grid; gap: .8em; }
 button {
-  display: flex; align-items: center; justify-content: center; gap: .6em; padding: .8em 1.4em; border: 0;
-  border-radius: .5em; background: #fff; box-shadow: inset 0 -.2em #0003, 0 .3em 1em #0009;
+  display: flex; align-items: center; justify-content: center; gap: .6em; padding: .7em 1.2em; border: 0;
+  border-radius: 2em; background: #fff; box-shadow: inset 0 -.2em #0003, 0 .3em 1em #0009;
   font: 800 1em/1.2 system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase;
-  color: #10243a; cursor: pointer; transition: transform .12s, filter .12s;
+  color: #10243a; cursor: pointer; transition: transform .12s, filter .12s, background .2s;
 }
 button:hover { transform: translateY(-.12em); filter: brightness(1.1); }
 button:active { transform: translateY(.1em); filter: brightness(.9); }
 :focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-#g { display: grid; gap: min(1.1em, 3vmin); }
-#d {
-  padding: .9em; background: linear-gradient(#ffe9b8, #ffab5e); font-size: 1.3em;
-  box-shadow: inset 0 -.2em #0003, 0 0 2em #ff9d5cb3;
-}
-/* dark plates under the fly button: planet size, detail level, list of controls */
-#q, #z, #k, #h { padding: 1em 1.6em; border-radius: .7em; background: #0a1a2eb3; }
-#q, #z { display: flex; align-items: center; gap: .4em; padding: .4em; }
-#q span, #z span { flex: 1; color: #ffd98a; }
-#q button { flex: 1.2; padding: .7em 0; background: none; box-shadow: none; color: #fff8ea; }
-#q button:hover { background: #ffd98a33; }
+#d { padding: .85em; font-size: 1.3em; background: linear-gradient(#ffe9b8, #ff9d5c); box-shadow: inset 0 -.2em #0003, 0 0 2em #ff9d5cb3; }
+/* rows of settings: label on the left, control on the right */
+.rw { display: flex; align-items: center; gap: .4em; padding: .35em .35em .35em 1em; border-radius: 1.4em; background: #ffffff12; }
+.rw .lb { flex: 1; text-align: left; color: #ffd98a; }
+.rw button { padding: .55em .8em; background: none; box-shadow: none; color: #fff8ea; }
+.rw button:hover { background: #ffd98a33; }
+#q button { flex: 1; padding: .55em .2em; font-size: .8em; letter-spacing: .06em; }
 #q .on { background: linear-gradient(#ffe9b8, #ffab5e); box-shadow: inset 0 -.2em #0003; color: #10243a; pointer-events: none; }
-#z input { flex: 2.2; accent-color: #ffab5e; }
-#z b { flex: 1; text-align: right; padding-right: .6em; }
-#k { display: flex; justify-content: center; gap: 2em; text-align: left; }
-#k p { display: grid; grid-template-columns: auto auto; align-content: start; align-items: center; gap: .55em .9em; }
-#k p + p { padding-left: 2em; border-left: 2px solid #ffd98a40; }
+#tm span { min-width: 7.2em; font-variant-numeric: tabular-nums; }
+#tm button { width: 2.2em; height: 2.2em; padding: 0; background: #fff8ea1f; }
+#z input { flex: 1.6; accent-color: #ffab5e; }
+#z b { min-width: 3.6em; text-align: right; padding-right: .4em; }
+/* the keys: click one to change it */
+#k { display: grid; grid-template-columns: auto auto; gap: .45em .8em; align-items: center; padding: .8em 1em; border-radius: 1.4em; background: #ffffff12; font-size: .9em; text-align: left; }
 #k i { display: flex; justify-self: end; align-items: center; gap: .25em; font-style: normal; }
-#k b {
-  min-width: 1.1em; padding: .2em .5em; border-radius: .35em; background: #fff8ea;
-  box-shadow: inset 0 -.15em #0004; color: #10243a; text-align: center;
+#k b, #k kbd {
+  min-width: 1.1em; padding: .15em .45em; border-radius: .35em; background: #fff8ea; box-shadow: inset 0 -.15em #0004;
+  font: inherit; color: #10243a; text-align: center;
 }
-#h { display: none; }
-@media (pointer: coarse), (max-height: 30em) { #k { display: none; } }
-@media (pointer: coarse) { #h { display: block; } }
-/* in the world: the clock and the pace of time (bottom), the menu button, the stats line */
+#k b { cursor: pointer; }
+#k b:hover { background: #ffd98a; }
+#k b.wt { background: #ff9d5c; animation: bl .8s infinite alternate; }
+@keyframes bl { to { opacity: .4; } }
+#kr { justify-self: center; grid-column: 1/3; padding: .3em .8em; font-size: .75em; background: none; box-shadow: none; color: #ffd98aaa; }
+@media (pointer: coarse), (max-height: 34em) { #k { display: none; } }
+@media (max-width: 52em) { #m { right: 50%; transform: translate(50%, -50%); } .g #m { transform: translate(50%, -50%) scale(.96); } #hd { display: none; } }
+/* flying: a short note when the pace of time changes, the menu button, the stats line */
 #t {
-  position: absolute; left: 50%; bottom: 1.2em; transform: translateX(-50%); display: none; align-items: center; gap: .3em;
-  padding: .3em; border-radius: 2em; background: #0a1a2e99; font-size: .85em; letter-spacing: .08em;
-  text-shadow: 0 1px 3px #000; transition: opacity .6s;
+  position: absolute; left: 50%; bottom: 1.6em; padding: .4em 1.2em; border-radius: 2em; background: #0a1a2e99;
+  font-size: .9em; letter-spacing: .1em; opacity: 0; transform: translateX(-50%); transition: opacity .5s; pointer-events: none;
 }
-.g #t { display: flex; }
-.p #t { opacity: .55; }
-#t button { width: 2.2em; height: 2.2em; padding: 0; border-radius: 50%; background: #fff8ea26; box-shadow: none; color: #fff8ea; font-size: .9em; }
-#t button:hover { background: #fff8ea4d; }
-#t span { min-width: 7.5em; text-align: center; }
+#t.on { opacity: 1; transition: none; }
 #o {
   position: absolute; top: .6em; right: .6em; display: none; padding: .3em .6em; background: #10243ad9;
   box-shadow: inset 0 0 0 2px #ffd98a, 0 .3em 1em #0009; font-size: 1.3em; color: #fff8ea; opacity: .8;
 }
-.g #o { display: flex; }
-.p #o { display: none; }
-#i {
-  position: absolute; top: 1em; left: 1.2em; margin: 0; font: .8em/1.6 ui-monospace, Consolas, monospace;
-  white-space: pre-wrap; text-shadow: 0 1px 4px #000; pointer-events: none;
-}
+@media (pointer: coarse) { .g #o { display: flex; } }
+#i { position: absolute; top: 1em; left: 1.2em; margin: 0; font: .8em/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; text-shadow: 0 1px 4px #000; pointer-events: none; }
 </style>
 </head>
 <body class=l>
 <canvas id=c></canvas>
+<div id=hd><small>Vincent's Planet Project</small><h1>Paradise Planet</h1></div>
 <div id=m>
-  <h1>Paradise Planet</h1>
   <div id=a>
     <div id=l><div id=p><i id=b></i></div><p id=s>Forming the planet…</p><p id=w hidden>Use Google Chrome for the best experience</p></div>
     <div id=g>
       <button id=d>Fly</button>
-      <p id=z><span>Planet</span><input id=r type=range min=10 max=50 step=1 value=30><b id=y>30 km</b></p>
-      <p id=q><span>Detail</span><button>Low</button><button>Medium</button><button>High</button></p>
-      <div id=k>
-        <p>
-          <i><b>W</b><b>A</b><b>S</b><b>D</b></i>Fly
-          <i><b>Q</b><b>E</b></i>Down / up
-          <i><b>Shift</b></i>Faster
-          <i><b>1</b>–<b>8</b></i>Viewpoints
-        </p>
-        <p>
-          <i><b>T</b><b>G</b></i>Time ± 
-          <i><b>P</b></i>Pause
-          <i><b>Esc</b></i>Menu
-          <i><b>H</b></i>Stats
-        </p>
-      </div>
-      <p id=h>Hold to fly forward · slide to steer · second finger to go faster</p>
+      <p id=tm class=rw><span class=lb>Time</span><button id=tg aria-label=Slower>«</button><span id=tc>12:00</span><button id=tt aria-label=Faster>»</button></p>
+      <p id=z class=rw><span class=lb>Planet</span><input id=r type=range min=10 max=50 step=1 value=10><b id=y>10 km</b></p>
+      <p id=q class=rw><span class=lb>Detail</span><button>Low</button><button>Medium</button><button>High</button></p>
+      <div id=k></div>
     </div>
   </div>
 </div>
-<div id=t><button id=tg aria-label=Slower>«</button><span id=tc>12:00</span><button id=tt aria-label=Faster>»</button></div>
+<p id=t></p>
 <button id=o aria-label=Menu>≡</button>
 <pre id=i></pre>
 <script>

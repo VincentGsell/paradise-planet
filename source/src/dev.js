@@ -78,13 +78,14 @@ if (URLQ.has('prof') && hasTS) {
   PP.flightLog = () => log;
   let last = 0;
   flightFn = (dt) => {
-    if (!on) return;
+    if (!on) return false;
     const now = performance.now(); if (last) log.frames.push(now - last); last = now;
-    ft += dt; if (ft >= 60) { on = false; log.done = true; return; }
+    ft += dt; if (ft >= 60) { on = false; log.done = true; return true; }
     cr(P, ft); cr(Q2, min(ft + 1.2, 65));
     { const r = v3len(P, 0), g = groundAt(P[0], P[1], P[2]), lo = R + g + 2.5; if (r < lo) for (let k = 0; k < 3; k++) P[k] *= lo / r; }
     // look ahead, a little down toward the ground when low
     lookAt(P[0], P[1], P[2], Q2[0], Q2[1], Q2[2]);
+    return true;
   };
 }
 // LOD sanity: visible patches whose ancestor is visible too (overlaps), and duplicates
