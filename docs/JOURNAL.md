@@ -1,8 +1,8 @@
 # Journal de Paradise Planet
 
 > Tenu par Claude, lot par lot. Contrat : `prompt.txt` (anglais) / `prompt.fr.txt`.
-> Règles de Vincent : un commit par lot ; push vers `origin` (Gitea, RnD/paradise-planet) quand il le demande ; il juge
-> la sensation en fenêtre.
+> Règles de Vincent : un commit par lot ; push vers `origin` (GitHub, VincentGsell/paradise-planet, privé pendant
+> la préparation) quand il le demande ; il juge la sensation en fenêtre.
 
 ## À faire à la publication (pas avant)
 
@@ -12,8 +12,8 @@
   public sans OpenG). Lien FMeX à confirmer : `https://github.com/VincentGsell/FMeX`.
 - Crédit d'Abyssal Garden (MIT) : README, `LICENSES/abyssal-garden.txt`, notice en tête de `index.html` et de
   `sh_sea.js`. Pas dans le prompt.
-- Reste à décider par Vincent : notre propre licence, le dépôt GitHub (public ou privé), GitHub Pages, de nouvelles
-  captures pour le README.
+- Reste à décider par Vincent : notre propre licence, le passage du dépôt GitHub en public (privé pendant la
+  préparation, 24/11), GitHub Pages, de nouvelles captures pour le README.
 - À tester ailleurs que sur la 5070 : une carte AMD, un portable Intel, un Mac, un navigateur sans WebGPU.
 
 ## Lots
