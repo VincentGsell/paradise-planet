@@ -122,3 +122,11 @@ Restaient, selon la 3e passe :
   images), `?cam=alt,pitch,yaw` (dev.html : la caméra au-dessus du sol, face au soleil).
 - Un clignotement ne se voit pas sur une image fixe : le critique ne peut pas le trouver, il faut comparer des images
   successives (flicker.mjs) ou les yeux de Vincent.
+
+### 24/11 : publication sur GitHub
+
+Le dépôt est sur GitHub (`VincentGsell/paradise-planet`), public, avec le site sur GitHub Pages (branche `master`,
+racine) : https://vincentgsell.github.io/paradise-planet/. README en deux tiroirs de langue comme RetroLab, français
+ouvert par défaut ; en tête, une boucle WebP de l'arrivée (de l'orbite à la plage, puis à l'envers), faite par
+`tools/film.mjs` (horloge virtuelle, image par image, ffmpeg ; `PP.intro()` / `PP.introT()` dans `dev.js`). Le menu a
+un lien « Source on GitHub ». Reste : la traduction anglaise du README, d'autres captures, la vidéo complète.

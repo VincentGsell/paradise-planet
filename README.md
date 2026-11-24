@@ -2,6 +2,8 @@
 
 *Une petite planète vivante à survoler dans le navigateur / A tiny living planet to fly around in your browser*
 
+<p align="center"><a href="https://vincentgsell.github.io/paradise-planet/"><img src=".github/arrival.webp" width="800" alt="L'arrivée : de l'orbite jusqu'à la plage / The arrival: from orbit down to the beach"></a></p>
+
 <details>
 <summary><b>🇬🇧 English</b></summary>
 
@@ -28,7 +30,11 @@ it together, image after image, until it looked right.
 
 ## Try it
 
-1. Download [`index.html`](index.html), or open the live page.
+<h2 align="center"><a href="https://vincentgsell.github.io/paradise-planet/">▶ Try Paradise Planet in your browser</a></h2>
+
+<p align="center"><img src=".github/screenshots/coast-sunlight.jpg" width="720" alt="The coast in the late sun"></p>
+
+1. Open the [live page](https://vincentgsell.github.io/paradise-planet/), or download [`index.html`](index.html).
 2. Open it in **Chrome** or **Edge** on a desktop computer.
 3. Watch the arrival, from orbit down to a beach, then press **Fly**.
 
@@ -179,6 +185,8 @@ Enjoy ! :)
 <h2 align="center"><a href="https://vincentgsell.github.io/paradise-planet/">▶ Essayer Paradise Planet dans le navigateur</a></h2>
 
 <p align="center">Chrome ou Edge sur un ordinateur, avec WebGPU. Rien à installer.</p>
+
+<p align="center"><img src=".github/screenshots/header-mountain.jpg" width="720" alt="Le soleil derrière la montagne"></p>
 
 ## Ce qu'on y trouve
 

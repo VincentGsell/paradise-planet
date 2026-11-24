@@ -9,6 +9,8 @@ window.PP = {
   draws: () => lastDraw,
   slotsFree: () => nFree,
   pace: (i) => { timeIdx = i; },
+  intro: () => introStart(),     // the arrival on demand (tools/film.mjs)
+  introT: () => introT,          // 0..1 during the arrival, -1 after
 };
 // ?shot: no menu, full resolution, time stopped (the harness drives the frames)
 if (URLQ.has('shot')) {
