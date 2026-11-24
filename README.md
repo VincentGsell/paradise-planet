@@ -1,5 +1,12 @@
 # Paradise Planet
 
+*Une petite planète vivante à survoler dans le navigateur / A tiny living planet to fly around in your browser*
+
+<details>
+<summary><b>🇬🇧 English</b></summary>
+
+<!-- Ancienne présentation, en attendant la traduction de la version française. -->
+
 **A tiny living planet you can fly around, right in your browser: from orbit down to the grass, and under the sea.**
 
 Meadows of tall grass bending in the wind, palms on white beaches, clouds drifting over the hills, a sun that crosses
@@ -102,3 +109,170 @@ npm run build
 The underwater garden (the kelp leaves, the sea floor plants, the look of the water) is adapted from
 [Abyssal Garden](https://github.com/Noniv/abyssal-garden) by Maksymilian Dendura, under the MIT License
 ([`LICENSES/abyssal-garden.txt`](LICENSES/abyssal-garden.txt)).
+
+</details>
+
+<details open>
+<summary><b>🇫🇷 Français</b></summary>
+
+<p align="center"><img src=".github/screenshots/beach-sunset.jpg" width="720" alt="La plage au coucher du soleil"></p>
+
+## L'histoire
+
+Depuis des années, j'essaie d'écrire un moteur 3D, dans différents langages, et surtout en Pascal. Le résultat de ce
+travail, c'est le moteur [FMeX](https://github.com/VincentGsell/FMeX), dont la première version est toujours publiée
+ici, sur GitHub. Il va bientôt être mis à jour : restez à l'affût !
+
+Avec l'arrivée de l'IA et de sa capacité à écrire des programmes, j'ai voulu voir ce qu'elle ferait de mon moteur 3D,
+qui sait afficher des planètes de façon assez poussée, et comment elle pourrait l'adapter au web, en le traduisant
+directement en JavaScript « vanilla », sans aucune bibliothèque.
+
+Paradise Planet est le résultat : le portage pour le web de mon moteur OpenG, et du moteur FMeX dont il est issu,
+écrit par l'IA (Claude, d'Anthropic) à partir du prompt fourni ici : [`prompt.fr.txt`](prompt.fr.txt) (en anglais :
+[`prompt.txt`](prompt.txt)). Ensuite, on l'a réglé ensemble, image après image.
+
+## Comment ça marche, en gros
+
+Toute la planète tient dans un seul fichier HTML d'environ 150 Ko. Il n'y a ni image, ni modèle 3D, ni son : tout est
+fabriqué par le code, pendant que vous regardez. La carte graphique fait presque tout le travail. Elle sculpte le
+relief, affine la planète là où vous regardez et la simplifie ailleurs, fait pousser l'herbe et les arbres là où le sol
+s'y prête, lève les vagues et éclaire le tout comme le ferait une vraie atmosphère. Rien n'est stocké : si vous revenez
+au même endroit, le même arbre aura repoussé au même endroit.
+
+Et la planète n'est pas si petite :
+
+| Planète | Diamètre | Surface | En mètres carrés |
+|---|---|---|---|
+| La plus petite (par défaut) | 10 km | environ 314 km² | 314 159 265 m² (oui, ce sont les décimales de π) |
+| La plus grande | 50 km | environ 7 854 km² | 7 853 981 634 m² |
+
+Avec ses 7 854 km², la plus grande offre plus de surface que GTA 6, et de loin : quelle que soit l'estimation qu'on
+prend pour la carte de Leonida, elle tient plus de vingt fois dedans. D'accord, on compte la mer. Mais la mer, on peut
+plonger dedans.
+
+## Le ciel et la météo
+
+Le ciel vient du moteur FMeX (en Pascal), qui a ensuite été porté dans le moteur OpenG (en Rust), bientôt publié lui
+aussi. On y retrouve :
+
+- **l'atmosphère**, calculée à partir de la physique de la lumière qui traverse l'air : ciel bleu à midi, couchers de
+  soleil dorés, étoiles et Voie lactée la nuit. Elle est mise à l'échelle d'une planète minuscule ;
+- **le soleil**, qui traverse la journée. On peut accélérer le temps, le ralentir ou le mettre en pause ;
+- **les nuages**, de vrais volumes et pas des images collées sur le ciel : des cumulus de beau temps posés dans une
+  couche qui entoure la planète, plus hauts sur une grande planète, et qu'on peut survoler sur une petite ;
+- **le vent**, qui pousse lentement les nuages autour de la planète. Leurs ombres courent sur la terre et sur la mer ;
+- **la mer**, dont les vagues sont calculées à partir d'un alizé de 6,5 m/s, comme sur un vrai océan.
+
+Pour l'instant, il fait toujours beau : pas encore de pluie ni d'orage.
+
+## Merci à
+
+- **[Abyssal Garden](https://github.com/Noniv/abyssal-garden)**, de Maksymilian Dendura (Noniv) : un jardin sous-marin
+  généré par le code, en WebGPU, dans un seul fichier HTML. Paradise Planet est construit de la même façon, et nos
+  fonds marins (les feuilles de kelp, les plantes du fond, la couleur de l'eau) en sont adaptés. Il est publié sous
+  licence MIT ([`LICENSES/abyssal-garden.txt`](LICENSES/abyssal-garden.txt)).
+- Les travaux publiés dont le moteur s'inspire : le modèle d'atmosphère de Sébastien Hillaire (2020), les nuages
+  « Nubis » de Guerrilla Games et les vagues de Jerry Tessendorf (spectre JONSWAP, calculé par FFT).
+
+Enjoy ! :)
+
+<h2 align="center"><a href="https://vincentgsell.github.io/paradise-planet/">▶ Essayer Paradise Planet dans le navigateur</a></h2>
+
+<p align="center">Chrome ou Edge sur un ordinateur, avec WebGPU. Rien à installer.</p>
+
+## Ce qu'on y trouve
+
+- **Une planète entière**, ronde et sans couture, de 10 à 50 km de diamètre, avec ses montagnes, ses baies et ses
+  lagons, qu'on voit de l'orbite jusqu'à 1,5 m du sol
+- **Une atmosphère physique** : ciel bleu, couchers de soleil dorés, étoiles et Voie lactée la nuit
+- **Des nuages en volume** qui avancent avec le vent, et leurs ombres sur la terre et la mer
+- **La mer** : de vraies vagues, l'écume sur le rivage, les eaux turquoise des hauts-fonds, et la surface vue d'en
+  dessous
+- **La vie hors de l'eau** : herbe, fleurs, arbres, palmiers, buissons et rochers, oiseaux, un rapace qui plane,
+  papillons, pollen dans les rayons du soleil, lucioles au crépuscule
+- **Des rayons de soleil** à travers les arbres et les nuages, surtout au coucher
+- **La vie sous l'eau**, de 20 à 50 m de profondeur : une forêt de kelp, des herbiers, des coraux mous, des bancs de
+  poissons
+- **Le temps** : on l'accélère, on le ralentit ou on le met en pause, et on regarde la journée passer
+
+| | |
+|---|---|
+| ![La planète vue de l'orbite](.github/screenshots/orbit.jpg) | ![Au-dessus des nuages](.github/screenshots/above-clouds.jpg) |
+| ![Une prairie au-dessus de la baie](.github/screenshots/meadow.jpg) | ![La lisière de la forêt](.github/screenshots/forest.jpg) |
+| ![Le récif](.github/screenshots/reef.jpg) | ![Le jardin de kelp à 40 m](.github/screenshots/garden.jpg) |
+
+## Essayer
+
+1. Ouvrez la [page en ligne](https://vincentgsell.github.io/paradise-planet/), ou téléchargez
+   [`index.html`](index.html).
+2. Ouvrez-la dans **Chrome** ou **Edge**, sur un ordinateur.
+3. Regardez l'arrivée, de l'orbite jusqu'à une plage, puis appuyez sur **Fly** (la page est en anglais).
+
+Il n'y a rien à installer, et le fichier téléchargé marche sans connexion. Il faut un navigateur qui gère **WebGPU**.
+
+## Commandes
+
+| | Clavier et souris |
+|---|---|
+| Regarder autour | Bouger la souris |
+| Voler | `Z` `Q` `S` `D` |
+| Descendre / monter | `A` / `E` |
+| Plus vite | Maintenir `Maj`, ou la molette |
+| Points de vue | `1` à `8` |
+| Temps plus vite / moins vite / pause | `T` / `G` / `P` |
+| Menu | `Échap` |
+| Statistiques | `H` |
+
+Les touches sont repérées par leur place sur le clavier (sur un clavier QWERTY, on vole avec `W` `A` `S` `D`), et le
+menu les affiche telles qu'elles sont gravées sur le vôtre. Pour en changer une, cliquez dessus dans le menu, puis
+appuyez sur la nouvelle touche.
+
+`Échap` ouvre le menu sans quitter le monde : on y règle l'heure, la taille de la planète et le niveau de détail. Près
+du sol, l'horizon se remet droit tout seul ; dans l'espace, on peut tourner et faire des loopings librement.
+
+## Niveaux de détail
+
+**Low**, **Medium** et **High** dans le menu : c'est la même planète, avec moins d'herbe, moins d'arbres au loin, des
+ombres et des nuages plus grossiers. À chaque niveau, la résolution s'adapte toute seule pour garder 60 images par
+seconde.
+
+## Comment c'est fait
+
+- **La planète** est une sphère-cube : six faces découpées en un arbre de morceaux (un quadtree), plus fins près de la
+  caméra, et chacun est généré par la carte graphique à partir d'un bruit à plusieurs octaves, avec des crêtes. Les
+  morceaux se fondent les uns dans les autres en changeant de finesse : rien ne surgit d'un coup et on ne voit pas de
+  couture. Les positions sont gardées en double précision sur le processeur et tout est dessiné par rapport à la
+  caméra : rien ne tremble, de l'orbite jusqu'au brin d'herbe.
+- **L'atmosphère** est calculée à partir de la physique de la diffusion de la lumière (Hillaire 2020), dans de petites
+  tables précalculées, à l'échelle d'une toute petite planète.
+- **Les nuages** sont parcourus par des rayons à travers une coquille sphérique, en résolution réduite, et accumulés
+  d'une image à l'autre.
+- **Les vagues** viennent d'un vrai spectre d'océan, transformé en hauteurs par une FFT sur la carte graphique, à
+  chaque image.
+- **Les plantes et les animaux** ne sont stockés nulle part : à chaque image, la carte graphique parcourt une grille
+  attachée à la planète autour de la caméra, et les fait pousser là où le sol leur convient. Le même arbre revient
+  toujours à la même place.
+- **Les ombres du soleil** sont faites de trois cascades autour de la caméra ; les rayons de soleil traversent une
+  brume basse, éclairée seulement là où le soleil passe.
+
+## À vous de jouer
+
+Le code source, lisible, est dans le dossier [`source`](source). Pour reconstruire `index.html`, il faut
+[Node.js](https://nodejs.org) 18 ou plus récent :
+
+```bash
+cd source
+npm install
+npm run build
+```
+
+`npm run build:readable` écrit un `index.html` non minifié ; `npm run build:dev` écrit `dev.html`, avec les points
+d'accès pour les tests.
+
+## Crédits
+
+Le jardin sous-marin (les feuilles de kelp, les plantes du fond, la couleur de l'eau) est adapté
+d'[Abyssal Garden](https://github.com/Noniv/abyssal-garden), de Maksymilian Dendura, sous licence MIT
+([`LICENSES/abyssal-garden.txt`](LICENSES/abyssal-garden.txt)).
+
+</details>
