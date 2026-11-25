@@ -320,9 +320,11 @@ function render() {
 // ---------------------------------------------------------------- flight
 // The ship of OpenG: the mouse turns the camera around its own axes (no stop: loops are fine), you fly where you
 // look; near the planet the horizon levels itself (roll only), unless you look almost straight up or down.
-let kf = 0, kb = 0, kl = 0, kr = 0, ku = 0, kd = 0, ks = 0, mdx = 0, mdy = 0, lkx = 0, lky = 0, l2x = 0, l2y = 0, speedMul = 1;
+let kf = 0, kb = 0, kl = 0, kr = 0, ku = 0, kd = 0, ks = 0, jx = 0, jy = 0, mdx = 0, mdy = 0, lkx = 0, lky = 0, l2x = 0, l2y = 0, speedMul = 1;
 let hud = false, hN = 0, hMax = 0, hT = 0;
 function fly(dt) {
+  // the touch stick turns like the mouse, faster the further it is pushed
+  if (jx || jy) { mdx += jx * abs(jx) * 760 * dt; mdy += jy * abs(jy) * 760 * dt; }
   // mouse look through two cascaded low-pass stages
   const kq = 1 - exp(-dt * 30); lkx += mdx * 0.0021; lky += mdy * 0.0021; mdx = 0; mdy = 0;
   const ax = lkx * kq, ay = lky * kq; lkx -= ax; lky -= ay; l2x += ax; l2y += ay;
@@ -465,11 +467,38 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => key(e, 0));
 addEventListener('wheel', (e) => { if (!menu) speedMul = clamp(speedMul * (e.deltaY > 0 ? 0.8 : 1.25), 0.05, 20); }, { passive: true });
-const release = () => { kf = kb = kl = kr = ku = kd = ks = 0; };
+const release = () => { kf = kb = kl = kr = ku = kd = ks = jx = jy = 0; if (stick) { stick.style.transform = ''; for (const b of $('pad').children) b.className = ''; } };
 const capture = () => { const p = canvas.requestPointerLock({ unadjustedMovement: true }); if (p && p.catch) p.catch(() => canvas.requestPointerLock()).catch(() => 0); };
 canvas.addEventListener('click', () => { if (!menu) capture(); });
 addEventListener('mousemove', (e) => { if (document.pointerLockElement === canvas) { mdx += e.movementX; mdy += e.movementY; } });
 addEventListener('blur', release);
+// touch screens: the stick (left) looks around, the cross (right) moves; full screen where the browser allows it.
+// In portrait the page is turned a quarter (it stays landscape), so the stick turns its screen offsets back.
+let stick = null;
+if (mob) {
+  const js = $('js'), rot = matchMedia('(orientation: portrait) and (pointer: coarse)');
+  stick = js.firstChild;
+  const move = (e) => {
+    const b = js.getBoundingClientRect(), rd = b.width / 2;
+    let dx = e.clientX - b.left - rd, dy = e.clientY - b.top - rd;
+    if (rot.matches) [dx, dy] = [dy, -dx];
+    const l = hypot(dx, dy), s = l > rd ? rd / l : 1; dx *= s; dy *= s;
+    jx = dx / rd; jy = dy / rd; stick.style.transform = `translate(${dx}px,${dy}px)`;
+  };
+  js.onpointerdown = (e) => { js.setPointerCapture(e.pointerId); move(e); };
+  js.onpointermove = (e) => { if (js.hasPointerCapture(e.pointerId)) move(e); };
+  js.onpointerup = js.onpointercancel = () => { jx = jy = 0; stick.style.transform = ''; };
+  for (const b of $('pad').children) {
+    const set = (v) => { const k = b.dataset.k; if (k === 'f') kf = v; else if (k === 'l') kl = v; else if (k === 'r') kr = v; else if (k === 'u') ku = v; else kd = v; b.className = v ? 'on' : ''; };
+    b.onpointerdown = (e) => { b.setPointerCapture(e.pointerId); set(1); };
+    b.onpointerup = b.onpointercancel = () => set(0);
+  }
+  const d = document, de = d.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen;
+  if (req && (d.fullscreenEnabled || d.webkitFullscreenEnabled)) $('fs').onclick = () => {
+    if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d); else req.call(de);
+  };
+  else $('fs').remove();
+} else for (const id of ['js', 'pad', 'fs']) $(id).remove();
 
 // ---------------------------------------------------------------- the arrival: from orbit down to the beach
 // The camera falls from two radii up to the beach of viewpoint 4, the planet turning under it: the way along the

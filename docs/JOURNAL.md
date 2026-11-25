@@ -130,3 +130,12 @@ racine) : https://vincentgsell.github.io/paradise-planet/. README en deux tiroir
 ouvert par défaut ; en tête, une boucle WebP de l'arrivée (de l'orbite à la plage, puis à l'envers), faite par
 `tools/film.mjs` (horloge virtuelle, image par image, ffmpeg ; `PP.intro()` / `PP.introT()` dans `dev.js`). Le menu a
 un lien « Source on GitHub ». Reste : la traduction anglaise du README, d'autres captures, la vidéo complète.
+
+### 25/11 : commandes tactiles
+
+Sur écran tactile seulement (`pointer: coarse`) : un joystick à gauche pour regarder (comme la souris, plus vite quand
+on le pousse loin), une croix à droite (▲ monter, ▼ descendre, ◀ ▶ glisser, Go au centre pour avancer), et un bouton
+plein écran à côté du menu, retiré si le navigateur ne sait pas le faire (Safari sur iPhone : on passe alors par
+« Ajouter à l'écran d'accueil », les balises `apple-mobile-web-app-*` lancent le jeu sans les barres). En portrait la
+page est tournée d'un quart de tour : le joystick remet ses axes dans le bon sens. Sur PC, ces éléments sont retirés
+de la page ; `ui-test.mjs` passe toujours (14/14), et un test tactile sur téléphone émulé (paysage et portrait) passe.
