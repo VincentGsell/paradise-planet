@@ -20,6 +20,7 @@ const check = (name, ok, got) => { console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}$
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 await page.goto(pathToFileURL(path.join(root, 'dev.html')).href + '?km=10&q=1');
 await page.waitForFunction(() => document.body.className === 'm', { timeout: 90000 });
+await sleep(1000); // the loading panel and the menu cross-fade (.8 s)
 const cap = (a) => page.$eval(`#k b[data-a=${a}]`, (e) => e.textContent);
 const fwd0 = await cap('f');
 check('a key cap shows a printed letter', /^[A-Z]$/.test(fwd0), fwd0);

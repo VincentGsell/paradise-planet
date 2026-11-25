@@ -1,31 +1,29 @@
 // ============================================================================
 // camera, flight, sun and time, rendering, menu
 // ============================================================================
-await say('Shaping the planet…', 0.1, 400);
-
 // ---------------------------------------------------------------- pipelines of the scene
 const mTerr = mod(W_SCENE + W_GROUND + W_TERRAIN);
 const mSurf = mod(W_SCENE + W_SURFACE.replace('@group(1) @binding(2)', '@group(1) @binding(2)'));
-const pTerrain = scenePipe(mTerr, 'vs', 'fs', lay(bgl0, bglTerr));
-const pSurf = scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater), { blend: OVER, depthWrite: true });
+const pTerrain = await scenePipe(mTerr, 'vs', 'fs', lay(bgl0, bglTerr));
+const pSurf = await scenePipe(mSurf, 'vs', 'fs', lay(bgl0, bglWater), { blend: OVER, depthWrite: true });
 const mGrass = mod(W_LIFE + W_GRASS_DRAW);
-const pGrass = scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
-const pFlower = scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
+const pGrass = await scenePipe(mGrass, 'vsGrass', 'fsGrass', layGrass, { strip: true, constants: { ROWS: GROWS } });
+const pFlower = await scenePipe(mGrass, 'vsFlower', 'fsFlower', layGrass);
 const mProps = mod(W_LIFE + W_WLIT + W_PROPS_DRAW);
-const pProps = scenePipe(mProps, 'vs', 'fs', layGrass, { buffers: [vlProps] });
+const pProps = await scenePipe(mProps, 'vs', 'fs', layGrass, { buffers: [vlProps] });
 const mBlit = mod(W_BLIT);
 const bglBlit = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: {} }, { binding: 1, visibility: SS.FRAGMENT, sampler: {} }] });
-const blitPipe = (e, add) => device.createRenderPipeline({ layout: lay(bglBlit), vertex: { module: mBlit, entryPoint: 'vs' },
+const blitPipe = (e, add) => rp({ layout: lay(bglBlit), vertex: { module: mBlit, entryPoint: 'vs' },
   fragment: { module: mBlit, entryPoint: e, targets: [{ format: HDR, blend: add ? ADD : undefined }] } });
-const pDown0 = blitPipe('fsDown0'), pDown = blitPipe('fsDown'), pUp = blitPipe('fsUp', true);
+const [pDown0, pDown, pUp] = await Promise.all([blitPipe('fsDown0'), blitPipe('fsDown'), blitPipe('fsUp', true)]);
 const blitBG = (view) => device.createBindGroup({ layout: bglBlit, entries: [{ binding: 0, resource: view }, { binding: 1, resource: sLin }] });
 const mPost = mod(W_POST);
 const bglPost = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: {} }, { binding: 1, visibility: SS.FRAGMENT, texture: {} },
   { binding: 2, visibility: SS.FRAGMENT, sampler: {} }, { binding: 3, visibility: SS.FRAGMENT, texture: {} }, { binding: 4, visibility: SS.FRAGMENT, buffer: { type: 'read-only-storage' } }] });
-const pPost = device.createRenderPipeline({ layout: lay(bgl0, bglPost), vertex: { module: mPost, entryPoint: 'vs' }, fragment: { module: mPost, entryPoint: 'fs', targets: [{ format: FMT }] } });
+const pPost = await rp({ layout: lay(bgl0, bglPost), vertex: { module: mPost, entryPoint: 'vs' }, fragment: { module: mPost, entryPoint: 'fs', targets: [{ format: FMT }] } });
 const mExpo = mod(W_EXPO);
 const bglExpo = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, texture: {} }, { binding: 1, visibility: SS.COMPUTE, buffer: { type: 'storage' } }] });
-const pExpo = device.createComputePipeline({ layout: lay(bgl0, bglExpo), compute: { module: mExpo, entryPoint: 'main' } });
+const pExpo = await cp({ layout: lay(bgl0, bglExpo), compute: { module: mExpo, entryPoint: 'main' } });
 const bExpo = sbuf(16);
 
 // ---------------------------------------------------------------- render targets (rebuilt on resize)
@@ -553,7 +551,7 @@ rng.onchange = () => { if (+rng.value !== DIAM) { keep('paradise', [LV, '', rng.
 document.addEventListener('pointerlockchange', () => { if (document.pointerLockElement) { if (!menu) body.className = 'g p'; } else if (!menu) ui(true); });
 
 // ---------------------------------------------------------------- start
-await say('Lighting the sky…', 0.3, 300);
+await say('Lighting the sky…', 0.45, 300);
 bakeAtmo();
 resize();
 addEventListener('resize', resize);
@@ -561,10 +559,11 @@ goPose(+URLQ.get('pose') - 1 >= 0 ? +URLQ.get('pose') - 1 : 3);
 keep('paradiseLoad', 1);
 addEventListener('pagehide', () => keep('paradiseLoad', ''));
 // grow the terrain around the first viewpoint before the reveal
-await say('Growing the land…', 0.85, 1200);
-for (let i = 0; i < 60; i++) { render(); if ((i & 7) === 7) await Q.onSubmittedWorkDone(); }
+await say('Growing the land…', 0.5, 300);
+for (let i = 0; i < 60; i++) { render(); if ((i & 7) === 7) { await Q.onSubmittedWorkDone(); bar(0.5 + 0.45 * (i + 1) / 60, 300); } }
 await say('Here comes the sun…', 1, 300);
 await Q.onSubmittedWorkDone();
+keep('paradiseSeen', 1);
 setTimeout(keep, 15e3, 'paradiseLoad', '');
 if (!URLQ.has('shot') && !URLQ.has('pose')) introStart();
 ui(true);

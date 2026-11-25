@@ -8,8 +8,8 @@ const SARGS = new Uint32Array([14, 0, 0, 0, 10, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 0
 const bglSOut = device.createBindGroupLayout({ entries: [0, 1, 2, 3].map((b) => ({ binding: b, visibility: SS.COMPUTE, buffer: { type: 'storage' } })) });
 const bgSOut = device.createBindGroup({ layout: bglSOut, entries: [bKelp, bSArgs, bSGrass, bSchools].map((b, i) => ({ binding: i, resource: { buffer: b } })) });
 const mSeaCS = mod(W_LIFE + W_SEA_CS);
-const pSeaCS = [0, 1, 2].map((L) => device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglSOut), compute: { module: mSeaCS, entryPoint: 'main', constants: { LAYER: L } } }));
-const pSeaFin = device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglSOut), compute: { module: mSeaCS, entryPoint: 'fin' } });
+const pSeaCS = await Promise.all([0, 1, 2].map((L) => cp({ layout: lay(bgl0, bglTerrC, bglLife, bglSOut), compute: { module: mSeaCS, entryPoint: 'main', constants: { LAYER: L } } })));
+const pSeaFin = await cp({ layout: lay(bgl0, bglTerrC, bglLife, bglSOut), compute: { module: mSeaCS, entryPoint: 'fin' } });
 const LS_SEA = [lifeSet(), lifeSet(), lifeSet()];
 const readBG = (b) => device.createBindGroup({ layout: bglRead, entries: [{ binding: 0, resource: { buffer: b } }] });
 const bgKelpR = readBG(bKelp), bgSGrassR = readBG(bSGrass), bgSchoolR = readBG(bSchools);
@@ -31,10 +31,10 @@ function seaPass(e) {
   c.end();
 }
 const mSea = mod(W_LIFE + W_WLIT + W_SEA_DRAW);
-const pKelp = scenePipe(mSea, 'vs', 'fs', layGrass, { strip: true, constants: { ROWS: 7, KIND: 0 } });
-const pSGrass = scenePipe(mSea, 'vs', 'fs', layGrass, { strip: true, constants: { ROWS: 5, KIND: 1 } });
-const pFish = scenePipe(mSea, 'vsFish', 'fsFish', layGrass);
-const pSnow = scenePipe(mSea, 'vsSnow', 'fsSnow', layGrass, { strip: true, blend: ADD });
+const pKelp = await scenePipe(mSea, 'vs', 'fs', layGrass, { strip: true, constants: { ROWS: 7, KIND: 0 } });
+const pSGrass = await scenePipe(mSea, 'vs', 'fs', layGrass, { strip: true, constants: { ROWS: 5, KIND: 1 } });
+const pFish = await scenePipe(mSea, 'vsFish', 'fsFish', layGrass);
+const pSnow = await scenePipe(mSea, 'vsSnow', 'fsSnow', layGrass, { strip: true, blend: ADD });
 function seaDraw(r) {
   if (!seaOn) return;
   r.setBindGroup(2, LS_SEA[0][2]);

@@ -196,8 +196,8 @@ const PARGS = new Uint32Array(NBK * 5);
 for (let k = 0; k < NKIND; k++) for (let l = 0; l < NLOD; l++) { const b = k * 3 + l, m = MESH[k][l]; PARGS.set([m[1], 0, m[0], m[2], 0], b * 5); }
 const bglPOut = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, buffer: { type: 'storage' } }, { binding: 1, visibility: SS.COMPUTE, buffer: { type: 'storage' } }, { binding: 2, visibility: SS.COMPUTE, buffer: { type: 'read-only-storage' } }] });
 const mPropsCS = mod(W_LIFE + W_PROPS_CS);
-const pPropsCS = [0, 1].map((L) => device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglPOut), compute: { module: mPropsCS, entryPoint: 'main', constants: { LAYER: L } } }));
-const pPropsFin = device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglPOut), compute: { module: mPropsCS, entryPoint: 'fin' } });
+const pPropsCS = await Promise.all([0, 1].map((L) => cp({ layout: lay(bgl0, bglTerrC, bglLife, bglPOut), compute: { module: mPropsCS, entryPoint: 'main', constants: { LAYER: L } } })));
+const pPropsFin = await cp({ layout: lay(bgl0, bglTerrC, bglLife, bglPOut), compute: { module: mPropsCS, entryPoint: 'fin' } });
 const layGrass = lay(bgl0, bglTerr, bglLife, bglRead);
 const bgPropsR = BOFF.map((o, b) => device.createBindGroup({ layout: bglRead, entries: [{ binding: 0, resource: { buffer: bProps, offset: o * 32, size: BCAP[b % 3] * 32 } }] }));
 const bBase = buf(new Uint32Array(BOFF), BU.STORAGE);

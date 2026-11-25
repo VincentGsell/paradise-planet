@@ -18,15 +18,15 @@ const AK = R / 1000 * 0.045 / 8, BOOST = 1.5;
 }
 const ATOP = AU[7] * 1000; // top of the atmosphere (m from the centre)
 const mLut = mod(W_LUT), mSkyV = mod(W_SKYVIEW);
-const pLut = (e) => device.createComputePipeline({ layout: lay(bgl0, bglOut), compute: { module: mLut, entryPoint: e } });
-const pSkyV = device.createComputePipeline({ layout: lay(bgl0, bglOut), compute: { module: mSkyV, entryPoint: 'main' } });
+const [pLutT, pLutM, pLutI] = await Promise.all(['trans', 'multi', 'irr'].map((e) => cp({ layout: lay(bgl0, bglOut), compute: { module: mLut, entryPoint: e } })));
+const pSkyV = await cp({ layout: lay(bgl0, bglOut), compute: { module: mSkyV, entryPoint: 'main' } });
 const bgSkyOut = outBG(tSkyV);
 function bakeAtmo() {
   const e = device.createCommandEncoder(), wg = (s) => [ceil(s[0] / 8), ceil(s[1] / 8)];
   const run = (p, g0, t, s) => { const c = e.beginComputePass(); c.setPipeline(p); c.setBindGroup(0, g0); c.setBindGroup(1, outBG(t)); c.dispatchWorkgroups(...wg(s)); c.end(); };
-  run(pLut('trans'), mkBG0(tBlack, tBlack, tBlack, tBlack, tBlack), tTrans, TLUT);
-  run(pLut('multi'), mkBG0(tTrans, tBlack, tBlack, tBlack, tBlack), tMulti, MLUT);
-  run(pLut('irr'), mkBG0(tTrans, tMulti, tBlack, tBlack, tBlack), tIrr, ELUT);
+  run(pLutT, mkBG0(tBlack, tBlack, tBlack, tBlack, tBlack), tTrans, TLUT);
+  run(pLutM, mkBG0(tTrans, tBlack, tBlack, tBlack, tBlack), tMulti, MLUT);
+  run(pLutI, mkBG0(tTrans, tMulti, tBlack, tBlack, tBlack), tIrr, ELUT);
   Q.submit([e.finish()]);
 }
 const skyView = (e) => { const c = e.beginComputePass(); c.setPipeline(pSkyV); c.setBindGroup(0, bg0Sky); c.setBindGroup(1, bgSkyOut); c.dispatchWorkgroups(ceil(SLUT[0] / 8), ceil(SLUT[1] / 8)); c.end(); };

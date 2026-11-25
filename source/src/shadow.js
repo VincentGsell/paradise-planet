@@ -30,8 +30,8 @@ const shDepth = { format: DEPTH, depthWriteEnabled: true, depthCompare: 'less', 
 const mShT = mod(W_SCENE + W_SHTERR), mShP = mod(W_LIFE + W_WLIT + W_PROPS_DRAW + W_SHPROPS);
 const pShT = [], pShP = [], passSh = [];
 for (let c = 0; c < NCASC; c++) {
-  pShT.push(device.createRenderPipeline({ layout: lay(bgl0, bglTerr), vertex: { module: mShT, entryPoint: 'vsShT', constants: { CASC: c } }, primitive: { cullMode: 'none' }, depthStencil: shDepth }));
-  pShP.push(device.createRenderPipeline({ layout: layGrass, vertex: { module: mShP, entryPoint: 'vsSh', buffers: [vlProps], constants: { CASC: c } },
+  pShT.push(await rp({ layout: lay(bgl0, bglTerr), vertex: { module: mShT, entryPoint: 'vsShT', constants: { CASC: c } }, primitive: { cullMode: 'none' }, depthStencil: shDepth }));
+  pShP.push(await rp({ layout: layGrass, vertex: { module: mShP, entryPoint: 'vsSh', buffers: [vlProps], constants: { CASC: c } },
     fragment: { module: mShP, entryPoint: 'fsSh', targets: [] }, primitive: { cullMode: 'none' }, depthStencil: shDepth }));
   passSh.push({ colorAttachments: [], depthStencilAttachment: { view: tShadow.createView({ dimension: '2d', baseArrayLayer: c, arrayLayerCount: 1 }), depthClearValue: 1, depthLoadOp: 'clear', depthStoreOp: 'store' } });
 }

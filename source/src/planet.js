@@ -48,7 +48,7 @@ const MAXJ = 64, JOBA = new ArrayBuffer(MAXJ * 48), JOBU = new Uint32Array(JOBA)
 const PTF = new Float32Array(SLOTS * 12), bPatches = sbuf(SLOTS * 48);
 const mBuild = mod(W_BUILD);
 const bglBuild = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, buffer: { type: 'read-only-storage' } }, { binding: 1, visibility: SS.COMPUTE, buffer: { type: 'storage' } }] });
-const pBuild = device.createComputePipeline({ layout: lay(bgl0, bglBuild), compute: { module: mBuild, entryPoint: 'build' } });
+const pBuild = await cp({ layout: lay(bgl0, bglBuild), compute: { module: mBuild, entryPoint: 'build' } });
 const bgBuild = device.createBindGroup({ layout: bglBuild, entries: [{ binding: 0, resource: { buffer: bJobs } }, { binding: 1, resource: { buffer: bVerts } }] });
 const bglTerr = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: VF, buffer: { type: 'read-only-storage' } }, { binding: 1, visibility: VF, buffer: { type: 'read-only-storage' } }] });
 const bgTerr = device.createBindGroup({ layout: bglTerr, entries: [{ binding: 0, resource: { buffer: bVerts } }, { binding: 1, resource: { buffer: bPatches } }] });

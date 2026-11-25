@@ -10,8 +10,8 @@ const CSTEPS = [96, 64, 40][LV], CSHN = [1024, 768, 512][LV];
 const tCShape = device.createTexture({ size: [128, 128, 128], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 4, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 const tCDetail = device.createTexture({ size: [32, 32, 32], dimension: '3d', format: 'rgba8unorm', mipLevelCount: 3, usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 {
-  const m = mod(W_CNOISE), p = (e) => device.createComputePipeline({ layout: 'auto', compute: { module: m, entryPoint: e } });
-  const pS = p('shape'), pD = p('detail'), pM = p('mip');
+  const m = mod(W_CNOISE), p = (e) => cp({ layout: 'auto', compute: { module: m, entryPoint: e } });
+  const [pS, pD, pM] = await Promise.all(['shape', 'detail', 'mip'].map(p));
   const v = (t, l) => t.createView({ dimension: '3d', baseMipLevel: l, mipLevelCount: 1 });
   const e = device.createCommandEncoder(), c = e.beginComputePass();
   c.setPipeline(pS); c.setBindGroup(0, device.createBindGroup({ layout: pS.getBindGroupLayout(0), entries: [{ binding: 0, resource: v(tCShape, 0) }] })); c.dispatchWorkgroups(32, 32, 32);
@@ -28,7 +28,7 @@ const writeFrame0 = () => { FU[36] = R; Q.writeBuffer(uFrame, 0, FU); };
 const CCN = 384, tCov = device.createTexture({ size: [CCN, CCN, 6], format: 'rgba8unorm', usage: TU.STORAGE_BINDING | TU.TEXTURE_BINDING });
 {
   const m = mod(W_CCOV), bl = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, storageTexture: { access: 'write-only', format: 'rgba8unorm', viewDimension: '2d-array' } }] });
-  const p = device.createComputePipeline({ layout: lay(bgl0, bl), compute: { module: m, entryPoint: 'main' } });
+  const p = await cp({ layout: lay(bgl0, bl), compute: { module: m, entryPoint: 'main' } });
   writeFrame0();
   const e = device.createCommandEncoder(), c = e.beginComputePass();
   c.setPipeline(p); c.setBindGroup(0, bg0); c.setBindGroup(1, device.createBindGroup({ layout: bl, entries: [{ binding: 0, resource: tCov.createView({ dimension: '2d-array' }) }] }));
@@ -47,13 +47,13 @@ bg0 = mkBG0(tTrans, tMulti, tIrr, tSkyV, tCSh);
 const W_CL = W_FRAME + W_NOISE + W_ATMO + W_CLOUD;
 const mCSh = mod(W_CL + W_CSHADOW), mCMarch = mod(W_CL + W_CMARCH.replace('texture_depth_multisampled_2d', AA > 1 ? 'texture_depth_multisampled_2d' : 'texture_depth_2d')), mCTaa = mod(W_CL + W_CTAA);
 const bglCSh = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.COMPUTE, storageTexture: { access: 'write-only', format: HDR } }] });
-const pCSh = device.createComputePipeline({ layout: lay(bgl0, bglCloud, bglCSh), compute: { module: mCSh, entryPoint: 'main' } });
+const pCSh = await cp({ layout: lay(bgl0, bglCloud, bglCSh), compute: { module: mCSh, entryPoint: 'main' } });
 const bgCSh = device.createBindGroup({ layout: bglCSh, entries: [{ binding: 0, resource: tCSh.createView() }] });
 const bglCMarch = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: { sampleType: 'depth', multisampled: AA > 1 } }] });
 const CTGT = [{ format: HDR }, { format: 'r16float' }];
-const pCMarch = device.createRenderPipeline({ layout: lay(bgl0, bglCloud, bglCMarch), vertex: { module: mCMarch, entryPoint: 'vs' }, fragment: { module: mCMarch, entryPoint: 'fs', targets: CTGT } });
+const pCMarch = await rp({ layout: lay(bgl0, bglCloud, bglCMarch), vertex: { module: mCMarch, entryPoint: 'vs' }, fragment: { module: mCMarch, entryPoint: 'fs', targets: CTGT } });
 const bglCTaa = device.createBindGroupLayout({ entries: [0, 1, 2, 3].map((b) => ({ binding: b, visibility: SS.FRAGMENT, texture: {} })) });
-const pCTaa = device.createRenderPipeline({ layout: lay(bgl0, bglCloud, bglCTaa), vertex: { module: mCTaa, entryPoint: 'vs' }, fragment: { module: mCTaa, entryPoint: 'fs', targets: CTGT } });
+const pCTaa = await rp({ layout: lay(bgl0, bglCloud, bglCTaa), vertex: { module: mCTaa, entryPoint: 'vs' }, fragment: { module: mCTaa, entryPoint: 'fs', targets: CTGT } });
 // render targets (rebuilt with the frame): the march, two histories
 let cW = 0, cH = 0, cTex = [], passCMarch, bgCMarch, passCTaa = [], bgCTaa = [], cHist = [], cPing = 0;
 function cloudTargets(W, H, vDp) {

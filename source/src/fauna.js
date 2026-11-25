@@ -8,8 +8,8 @@ const FARGS = new Uint32Array([12, 0, 0, 0, 12, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0
 const bglFOut = device.createBindGroupLayout({ entries: [0, 1, 2, 3].map((b) => ({ binding: b, visibility: SS.COMPUTE, buffer: { type: 'storage' } })) });
 const bgFOut = device.createBindGroup({ layout: bglFOut, entries: [bFlocks, bFArgs, bRaptors, bBflies].map((b, i) => ({ binding: i, resource: { buffer: b } })) });
 const mFaunaCS = mod(W_LIFE + W_FAUNA_CS);
-const pFaunaCS = [0, 1, 2].map((L) => device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglFOut), compute: { module: mFaunaCS, entryPoint: 'main', constants: { LAYER: L } } }));
-const pFaunaFin = device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglFOut), compute: { module: mFaunaCS, entryPoint: 'fin' } });
+const pFaunaCS = await Promise.all([0, 1, 2].map((L) => cp({ layout: lay(bgl0, bglTerrC, bglLife, bglFOut), compute: { module: mFaunaCS, entryPoint: 'main', constants: { LAYER: L } } })));
+const pFaunaFin = await cp({ layout: lay(bgl0, bglTerrC, bglLife, bglFOut), compute: { module: mFaunaCS, entryPoint: 'fin' } });
 const LS_FAUNA = [lifeSet(), lifeSet(), lifeSet()];
 const bgFlockR = readBG(bFlocks), bgRaptorR = readBG(bRaptors), bgBflyR = readBG(bBflies), bgFireR = readBG(bFireflies);
 let faunaOn = true;
@@ -29,9 +29,9 @@ function faunaPass(e) {
   c.end();
 }
 const mFauna = mod(W_LIFE + W_FAUNA_DRAW);
-const pBirds = [0, 1, 2].map((k) => scenePipe(mFauna, 'vs', 'fs', layGrass, { constants: { KIND: k } }));
-const pPollen = scenePipe(mFauna, 'vsPollen', 'fsPollen', layGrass, { strip: true, blend: ADD });
-const pFirefly = scenePipe(mFauna, 'vsFirefly', 'fsPollen', layGrass, { strip: true, blend: ADD });
+const pBirds = await Promise.all([0, 1, 2].map((k) => scenePipe(mFauna, 'vs', 'fs', layGrass, { constants: { KIND: k } })));
+const pPollen = await scenePipe(mFauna, 'vsPollen', 'fsPollen', layGrass, { strip: true, blend: ADD });
+const pFirefly = await scenePipe(mFauna, 'vsFirefly', 'fsPollen', layGrass, { strip: true, blend: ADD });
 function faunaDraw(r) {
   r.setBindGroup(2, LS_FAUNA[0][2]);
   if (faunaOn) {

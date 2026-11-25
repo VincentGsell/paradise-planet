@@ -6,10 +6,10 @@ const canvas = $('c'), info = $('i'), body = document.body;
 // loading bar: each stage glides it to `to` (the share done) over ~`ms` on the compositor, so it moves while this
 // thread is busy (Abyssal Garden's trick)
 let loaded = 0, dead;
+const bar = (to, ms) => { const a = $('b').animate({ transform: [`scaleX(${loaded})`, `scaleX(${to})`] }, { duration: ms, fill: 'forwards', easing: 'cubic-bezier(.3,.5,.5,1)' }); loaded = to; return a; };
 const say = (m, to, ms) => {
   if (!dead) $('s').textContent = m;
-  const a = $('b').animate({ transform: [`scaleX(${loaded})`, `scaleX(${to})`] }, { duration: ms, fill: 'forwards', easing: 'cubic-bezier(.3,.5,.5,1)' });
-  loaded = to;
+  const a = bar(to, ms);
   return new Promise((r) => { a.ready.then(() => setTimeout(r)); setTimeout(r, document.hidden ? 0 : 1e3); });
 };
 const fail = (m) => { throw new Error(m, { cause: 1 }); };
@@ -33,6 +33,15 @@ const ctx = canvas.getContext('webgpu'), FMT = navigator.gpu.getPreferredCanvasF
 const Q = device.queue, HDR = 'rgba16float', DEPTH = 'depth32float';
 const TU = GPUTextureUsage, BU = GPUBufferUsage, SS = GPUShaderStage;
 const mod = (code) => device.createShaderModule({ code });
+// pipelines are compiled without blocking the page, and each one done moves the loading bar a notch (up to 40 %): a
+// phone's first visit compiles them all for its GPU, a minute or so, and the next visits find them in its cache
+const NPIPE = 52 + 2 * NCASC;
+let nPipe = 0;
+const piped = (p) => { bar(0.4 * min(1, ++nPipe / NPIPE), 250); return p; };
+const rp = (d) => device.createRenderPipelineAsync(d).then(piped), cp = (d) => device.createComputePipelineAsync(d).then(piped);
+let seen;
+try { seen = localStorage.paradiseSeen; } catch {}
+if (mob && !seen) $('s').textContent = 'First visit: preparing the shaders, this can take a minute…';
 const buf = (data, usage) => { const b = device.createBuffer({ size: (data.byteLength + 3) & ~3, usage: usage | BU.COPY_DST }); Q.writeBuffer(b, 0, data.buffer || data, data.byteOffset || 0, data.byteLength); return b; };
 const ubuf = (size) => device.createBuffer({ size, usage: BU.UNIFORM | BU.COPY_DST });
 const sbuf = (size, extra = 0) => device.createBuffer({ size, usage: BU.STORAGE | BU.COPY_DST | extra });
@@ -81,7 +90,7 @@ const bglOut = device.createBindGroupLayout({ entries: [{ binding: 0, visibility
 const outBG = (t) => device.createBindGroup({ layout: bglOut, entries: [{ binding: 0, resource: t.createView() }] });
 
 // a pipeline of the scene pass (HDR, reversed-Z depth, MSAA)
-const scenePipe = (m, vsE, fsE, layout, o = {}) => device.createRenderPipeline({ layout,
+const scenePipe = (m, vsE, fsE, layout, o = {}) => rp({ layout,
   vertex: { module: m, entryPoint: vsE, buffers: o.buffers || [], constants: o.constants },
   fragment: { module: m, entryPoint: fsE, targets: [{ format: HDR, blend: o.blend }] },
   primitive: { topology: o.strip ? 'triangle-strip' : 'triangle-list', cullMode: o.cull || 'none' },

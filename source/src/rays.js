@@ -90,8 +90,8 @@ const W_RBLUR = /*wgsl*/`
 const RSTEPS = [32, 24, 16][LV];
 const mRays = mod(W_SCENE + W_RAYS.replace('texture_depth_multisampled_2d', AA > 1 ? 'texture_depth_multisampled_2d' : 'texture_depth_2d')), mRBlur = mod(W_RBLUR);
 const bglRays = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: SS.FRAGMENT, texture: { sampleType: 'depth', multisampled: AA > 1 } }, { binding: 1, visibility: SS.FRAGMENT, buffer: {} }] });
-const pRays = device.createRenderPipeline({ layout: lay(bgl0, bglRays), vertex: { module: mRays, entryPoint: 'vs' }, fragment: { module: mRays, entryPoint: 'fs', targets: [{ format: HDR }] } });
-const pRBlur = device.createRenderPipeline({ layout: 'auto', vertex: { module: mRBlur, entryPoint: 'vs' }, fragment: { module: mRBlur, entryPoint: 'fs', targets: [{ format: HDR }] } });
+const pRays = await rp({ layout: lay(bgl0, bglRays), vertex: { module: mRays, entryPoint: 'vs' }, fragment: { module: mRays, entryPoint: 'fs', targets: [{ format: HDR }] } });
+const pRBlur = await rp({ layout: 'auto', vertex: { module: mRBlur, entryPoint: 'vs' }, fragment: { module: mRBlur, entryPoint: 'fs', targets: [{ format: HDR }] } });
 const RYU = new Float32Array(4), uRays = ubuf(16);
 let rTex = [], passRays, passRBlur, bgRays, bgRBlur, vRays;
 function rayTargets(W, H, vDp) {

@@ -60,8 +60,8 @@ const GROWS = [5, 4, 3][LV], GARGS = new Uint32Array([2 * (GROWS + 1), 0, 0, 0, 
 const bglGOut = device.createBindGroupLayout({ entries: [0, 1, 2, 3].map((b) => ({ binding: b, visibility: SS.COMPUTE, buffer: { type: 'storage' } })) });
 const bgGOut = device.createBindGroup({ layout: bglGOut, entries: [{ binding: 0, resource: { buffer: bGrass } }, { binding: 1, resource: { buffer: bGArgs } }, { binding: 2, resource: { buffer: bFlowers } }, { binding: 3, resource: { buffer: bFireflies } }] });
 const mGrassCS = mod(W_LIFE + W_GRASS_CS);
-const pGrassCS = device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglGOut), compute: { module: mGrassCS, entryPoint: 'main' } });
-const pGrassFin = device.createComputePipeline({ layout: lay(bgl0, bglTerrC, bglLife, bglGOut), compute: { module: mGrassCS, entryPoint: 'fin' } });
+const pGrassCS = await cp({ layout: lay(bgl0, bglTerrC, bglLife, bglGOut), compute: { module: mGrassCS, entryPoint: 'main' } });
+const pGrassFin = await cp({ layout: lay(bgl0, bglTerrC, bglLife, bglGOut), compute: { module: mGrassCS, entryPoint: 'fin' } });
 const bglRead = device.createBindGroupLayout({ entries: [{ binding: 0, visibility: VF, buffer: { type: 'read-only-storage' } }] });
 const bgGrassR = device.createBindGroup({ layout: bglRead, entries: [{ binding: 0, resource: { buffer: bGrass } }] });
 const bgFlowerR = device.createBindGroup({ layout: bglRead, entries: [{ binding: 0, resource: { buffer: bFlowers } }] });

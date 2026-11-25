@@ -139,3 +139,14 @@ plein écran à côté du menu, retiré si le navigateur ne sait pas le faire (S
 « Ajouter à l'écran d'accueil », les balises `apple-mobile-web-app-*` lancent le jeu sans les barres). En portrait la
 page est tournée d'un quart de tour : le joystick remet ses axes dans le bon sens. Sur PC, ces éléments sont retirés
 de la page ; `ui-test.mjs` passe toujours (14/14), et un test tactile sur téléphone émulé (paysage et portrait) passe.
+
+### 25/11 : premier lancement sur téléphone
+
+Sur l'iPhone, le premier lancement restait figé sur la barre de chargement, et le deuxième partait presque tout de
+suite : iOS compile tous les shaders pour sa puce, puis les garde en cache. Les pipelines (56 en Low, 58 en High) sont
+maintenant créés en asynchrone (`rp` / `cp` dans `gpu.js`) : la page ne bloque plus, et chaque pipeline fini fait
+avancer la barre (jusqu'à 40 %) ; la pousse du terrain la fait aussi avancer (de 50 à 95 %). Au premier lancement sur
+écran tactile, un message prévient que ça peut prendre une minute (`localStorage.paradiseSeen` ensuite). Sur PC, on
+arrive au menu un peu plus vite qu'avant (2,8 s au lieu de 3,1). Le panneau de chargement laisse passer les clics
+pendant son fondu, et `ui-test.mjs` attend la fin du fondu avant de cliquer (il cliquait trop tôt, maintenant que le
+chargement va plus vite).
